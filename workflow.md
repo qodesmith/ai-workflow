@@ -137,7 +137,7 @@ bun ralph.ts
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
 
 **Each iteration:**
-1. Resume any `in_progress` task, or pick the next `pending` task with no incomplete dependencies
+1. Resume any `in_progress` task, retry any `failed` task, or pick the next `pending` task with no incomplete dependencies
 2. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox with the task file and any prior progress context
 3. Agent implements the task, writes a completion record to the manifest, emits a status signal
 4. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task
@@ -149,4 +149,4 @@ The Ralph Loop works through the task manifest one task at a time until all task
 
 **Drift** is when an implementation deviates from what was planned. The Drift Response agent classifies the deviation, updates any pending tasks that were generated against stale assumptions, and flags the engineer if a locked technical decision was departed from — since that kind of change has implications beyond any individual task file.
 
-**Failed tasks** require human resolution. Depending on the nature of the failure, this means correcting a spec (Mid-Initiative Corrections) or restructuring the task manifest. Re-run `bun ralph.ts` after resolving.
+**Failed tasks** require human resolution. Depending on the nature of the failure, this means correcting a spec (Mid-Initiative Corrections) or fixing the underlying issue the task surfaced. Re-run `bun ralph.ts` after resolving — the loop automatically retries failed tasks before starting new ones.

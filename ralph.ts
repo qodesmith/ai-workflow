@@ -77,6 +77,20 @@ function inProgressTask(manifest: Manifest): ManifestTask | undefined {
   return allTasks(manifest).find((t) => t.status === "in_progress");
 }
 
+function nextFailedTask(manifest: Manifest): ManifestTask | undefined {
+  const completedIds = new Set(
+    allTasks(manifest)
+      .filter((t) => t.status === "complete")
+      .map((t) => t.id)
+  );
+
+  return allTasks(manifest).find(
+    (t) =>
+      t.status === "failed" &&
+      t.depends_on.every((dep) => completedIds.has(dep))
+  );
+}
+
 function nextPendingTask(manifest: Manifest): ManifestTask | undefined {
   const completedIds = new Set(
     allTasks(manifest)
@@ -280,26 +294,42 @@ while (true) {
   if (task) {
     resuming = true;
   } else {
-    task = nextPendingTask(manifest);
+    // Failed tasks take priority — they represent a previous iteration
+    // the engineer has since resolved.
+    task = nextFailedTask(manifest);
 
-    if (!task) {
-      if (allComplete(manifest)) {
-        printDivider();
-        console.log("  ✓ All tasks complete.");
-        printDivider();
-        process.exit(0);
-      } else {
-        printDivider();
-        console.error("  ✗ No runnable tasks found and not all tasks are complete.");
-        console.error("    Check for failed tasks or unresolved dependency cycles.");
-        printDivider();
-        process.exit(1);
+    if (task) {
+      console.log(`\n↻ Retrying previously failed task: ${task.id} — ${task.title}`);
+      await updateTask(task.id, (t) => ({
+        ...t,
+        status: "in_progress",
+        failed_reason: null,
+      }));
+      manifest = await readManifest();
+      task = allTasks(manifest).find((t) => t.id === task!.id)!;
+      resuming = true;
+    } else {
+      task = nextPendingTask(manifest);
+
+      if (!task) {
+        if (allComplete(manifest)) {
+          printDivider();
+          console.log("  ✓ All tasks complete.");
+          printDivider();
+          process.exit(0);
+        } else {
+          printDivider();
+          console.error("  ✗ No runnable tasks found and not all tasks are complete.");
+          console.error("    Check for unresolved dependency cycles.");
+          printDivider();
+          process.exit(1);
+        }
       }
-    }
 
-    await updateTask(task.id, (t) => ({ ...t, status: "in_progress" }));
-    manifest = await readManifest();
-    task = allTasks(manifest).find((t) => t.id === task!.id)!;
+      await updateTask(task.id, (t) => ({ ...t, status: "in_progress" }));
+      manifest = await readManifest();
+      task = allTasks(manifest).find((t) => t.id === task!.id)!;
+    }
   }
 
   const iteration = (task.progress?.length ?? 0) + 1;
