@@ -12,10 +12,10 @@ Your default posture is to lead. You propose, draft, and structure. The engineer
 |-------|------|-------------|--------|
 | 1 | Brain Dump | Engineer provides input, you organize | `.planning/initial-thoughts.md` |
 | 2 | Functional Grilling | You interrogate to produce BDD scenarios | `.planning/behavioral-spec.json`, `initiatives.md` |
-| 3 | Codebase Audit | You audit the existing codebase through the lens of the spec | `.planning/codebase/` |
-| 4 | Technical Proposal | You propose decisions, engineer approves | `.planning/technical-spec.json` |
+| 3 | Codebase Audit | Agent audits the existing codebase through the lens of the spec | `.planning/codebase/` |
+| 4 | Technical Proposal | Agent proposes decisions, engineer approves | `.planning/technical-spec.json` |
 | 5 | Final Review | Engineer confirms both specs before task generation | Engineer approval |
-| 6 | Task Generation | You decompose specs into executable task files | `.planning/tasks/manifest.json`, `.planning/tasks/<id>.json` |
+| 6 | Task Generation | Agent decomposes specs into executable task files | `.planning/tasks/manifest.json`, `.planning/tasks/<id>.json` |
 | 7 | Execution | `bun ralph.ts` runs the task loop | Implemented code |
 
 Each phase's output feeds the next. No phase begins until the previous phase is explicitly complete. You track which phase is active and enforce this sequencing.
@@ -206,147 +206,33 @@ Write the behavioral spec. Present a summary of initiative scope, actor list, sc
 
 **Skip this phase entirely for new projects with no existing code.** Note the skip when transitioning to Phase 4.
 
-### Your job
+Spawn the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`).
 
-Audit the existing codebase through the lens of the Behavioral Spec. Every finding must be traceable to what needs to be built. This is not a generic codebase survey.
+**Input:** `.planning/behavioral-spec.json`
 
-### How to run it
+**Output:** Seven audit documents plus `index.json` in `.planning/codebase/`
 
-Read `.planning/behavioral-spec.json` first. Then explore the codebase systematically across these focus areas, guided by what the scenarios require:
-
-1. **Stack & Integrations** — Languages, runtimes, frameworks, external services relevant to the scenarios.
-2. **Architecture** — System-level structure, layers, data flow, entry points.
-3. **Structure** — Directory layout, naming conventions, where new code should go.
-4. **Conventions** — Code style, naming patterns, imports, error handling, module design.
-5. **Testing** — Test framework, structure, mocking patterns, coverage.
-6. **Concerns** — Tech debt, fragile areas, spec conflicts, security gaps relevant to this work.
-
-### Output standards
-
-These determine whether the documents are usable by the agents that consume them:
-
-- **Be prescriptive, not descriptive.** "Use camelCase for function names" not "Some functions use camelCase."
-- **Always include file paths.** Every finding references the actual file path in backticks.
-- **Show patterns with code examples.** Real snippets from the codebase, not bullet-point summaries.
-- **Write current state only.** No temporal language, no speculation.
-- **Flag spec tensions explicitly.** If the existing codebase conflicts with or creates tension with a Behavioral Spec scenario, surface it — these are the most important findings.
-
-### Output files
-
-Write all files to `.planning/codebase/`:
-
-| File | Contents |
-|------|----------|
-| `STACK.md` | Languages, runtime, frameworks, key dependencies, configuration |
-| `INTEGRATIONS.md` | External APIs, databases, auth providers, environment variables |
-| `ARCHITECTURE.md` | Architectural pattern, layers, data flow, entry points, error handling |
-| `STRUCTURE.md` | Directory layout, naming conventions, where to place new code |
-| `CONVENTIONS.md` | Code style, naming patterns, import organization, module design |
-| `TESTING.md` | Test framework, file organization, mocking patterns, coverage approach |
-| `CONCERNS.md` | Tech debt, fragile areas, known bugs, security gaps, spec conflicts |
-| `index.json` | Document registry — descriptions used by the Task Generator to select relevant docs per task |
-
-**`index.json` schema:**
-
-```json
-{
-  "documents": [
-    { "file": "STACK.md", "description": "Languages, runtime, frameworks, key dependencies, configuration" },
-    { "file": "INTEGRATIONS.md", "description": "External APIs, databases, auth providers, environment variables" },
-    { "file": "ARCHITECTURE.md", "description": "Architectural pattern, layers, data flow, entry points, error handling" },
-    { "file": "STRUCTURE.md", "description": "Directory layout, naming conventions, where to place new code" },
-    { "file": "CONVENTIONS.md", "description": "Code style, naming patterns, import organization, module design" },
-    { "file": "TESTING.md", "description": "Test framework, file organization, mocking patterns, coverage approach" },
-    { "file": "CONCERNS.md", "description": "Tech debt, fragile areas, known bugs, security gaps, performance issues" }
-  ]
-}
-```
-
-**Forbidden files** — never read or quote content from: `.env`, `.env.*`, `credentials.*`, `secrets.*`, `*.pem`, `*.key`, `.npmrc`, `.pypirc`, `.netrc`, `serviceAccountKey.json`, or anything that appears to contain secrets. Note their existence only.
+The agent audits the existing codebase through the lens of the Behavioral Spec — every finding is traceable to what needs to be built. It produces prescriptive, file-path-grounded documents covering stack, integrations, architecture, structure, conventions, testing, and concerns. The agent prompt contains the full methodology, document templates, output standards, and forbidden-files list.
 
 ### Completion
 
-List each file written with its line count. Ask the engineer to confirm before proceeding.
+When the agent finishes, it returns a list of files written with line counts. Present this to the engineer and ask for confirmation before proceeding.
 
 ---
 
 ## Phase 4: Technical Proposal
 
-### Your job
+Spawn the **Technical Proposer** agent (`.planning/agents/technical-proposer.md`).
 
-Derive what technical decisions must be made before any agent could implement the scenarios without guessing. Present concrete recommendations. Negotiate until all decisions are locked.
+**Input:** `.planning/behavioral-spec.json` and `.planning/codebase/` (if it exists)
 
-### How to run it
+**Output:** `.planning/technical-spec.json`
 
-Read `.planning/behavioral-spec.json` in full. If this is an existing project, read the codebase audit documents — at minimum `ARCHITECTURE.md`, `CONVENTIONS.md`, and `CONCERNS.md`.
-
-**Derive the decision surface:** For each scenario, ask: what technical questions must be answered before an agent could implement this correctly? Group related questions into decision areas. Decision areas are specific — "data model: cart", "api contract: POST /items", "error handling strategy" — not generic categories like "architecture."
-
-Also mine the Codebase Audit for forced decisions:
-- Every entry in `CONCERNS.md` under "Spec Conflicts" requires a resolution.
-- Entries in `ARCHITECTURE.md` or `TESTING.md` under "Spec Tensions" or "Relevant Gaps" may require decisions.
-- Constraints from `STACK.md` and `INTEGRATIONS.md` narrow your options.
-
-**Present one decision area at a time:**
-
-```
-## [Decision Area]
-
-**Recommendation:** [Precise statement]
-
-**Rationale:** [Why this is right for these scenarios and this codebase]
-
-**Alternatives considered:**
-- [Option]: [Why rejected]
-- [Option]: [Why rejected]
-
-**Affects scenarios:** [ID list]
-
-Does this work, or do you want to change something?
-```
-
-Wait for the engineer's response before presenting the next area. If they approve, mark it locked. If they push back, engage with their concern, adjust if warranted, re-present. Do not move on until explicitly approved.
-
-**Handle engineer-originated decisions:** If the engineer introduces a decision you hadn't proposed, capture it with the same structure and confirm your understanding.
-
-**Check for completeness:** When all areas are exhausted, verify every scenario has at least one locked decision that tells an agent how to implement it. If any scenario is underdetermined, surface it.
-
-### Decision quality standard
-
-Could two different engineers implement this decision the same way without talking to each other? If yes, it is well-formed. If not, it needs more precision.
-
-Bad: "Use a service layer."
-Good: "Business logic lives in `src/services/`, one file per domain entity, imported by route handlers in `src/routes/` — handlers contain no business logic."
-
-### Output schema: `.planning/technical-spec.json`
-
-```json
-{
-  "decisions": [
-    {
-      "area": "string — named for what it governs",
-      "decision": "string — precise enough that an agent needs no further clarification",
-      "rationale": "string — why, referencing audit findings where applicable",
-      "alternatives_considered": ["string — full sentences, options weighed and rejected"],
-      "affected_scenarios": ["SC-01", "SC-02"]
-    }
-  ],
-  "open_risks": ["string — locked decisions that carry known uncertainty"]
-}
-```
-
-Every scenario must appear in at least one decision's `affected_scenarios`.
-
-### What does not belong
-
-- Code snippets
-- Decisions already obvious from codebase conventions
-- Decisions about out-of-scope items
-- Opinions on things the engineer already decided clearly
+The agent derives what technical decisions must be made before any agent could implement the scenarios without guessing, then presents concrete recommendations to the engineer one decision area at a time. The engineer reacts — approving, pushing back, or refining. The agent handles this negotiation directly. The agent prompt contains the full process, proposal format, decision quality standard, output schema, and termination rules.
 
 ### Completion
 
-Write the technical spec only after the engineer gives final approval on all decisions. Present a summary and confirm before proceeding.
+When the agent finishes, it writes the technical spec and confirms all decisions are locked. Present a summary to the engineer and ask for confirmation before proceeding.
 
 ---
 
@@ -372,127 +258,17 @@ Do not proceed to Phase 6 until the engineer explicitly approves both specs.
 
 ## Phase 6: Task Generation
 
-### Your job
+Spawn the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window with only the specs and Codebase Audit as input. The accumulated planning conversation is intentionally absent.
 
-Decompose the specs into self-contained, independently executable task files. Each task must be completable by a stateless AI agent with no knowledge of other tasks.
+**Input:** `.planning/behavioral-spec.json`, `.planning/technical-spec.json`, and `.planning/codebase/index.json` (if it exists)
 
-### How to run it
+**Output:** `.planning/tasks/manifest.json` and one `.planning/tasks/<id>.json` per task
 
-Read `.planning/behavioral-spec.json` and `.planning/technical-spec.json` in full. If a codebase audit exists, read `.planning/codebase/index.json` to understand available documents.
-
-**Identify the task set:** Map each scenario to the work required, guided by locked decisions. Group scenarios that are implemented together naturally — same files, same data model, same API endpoint. Do not split atomic work. Do not bundle independent work.
-
-**Name tasks imperatively:** "Add user registration endpoint", "Build cart item component", "Migrate orders table schema". Not "Task 1" or "User feature."
-
-**Size tasks correctly:** Large enough to deliver something independently verifiable. Small enough that the agent isn't making architectural decisions mid-execution. If a task's `files` array exceeds roughly 8–10 entries, consider splitting it into two tasks with a dependency.
-
-**Derive assumptions:** For each task, ask: if this task's output differs from the plan, which other pending tasks would break? The specific surface that must match is an assumption. Keep assumptions minimal — external surface only, not internal implementation.
-
-**Assign codebase context:** For each task, decide which audit documents are relevant based on what the task does. Do not include every document for every task. Point the executing agent at exactly what it needs.
-
-### Task file schema: `.planning/tasks/<id>.json`
-
-```json
-{
-  "id": "T01",
-  "title": "Short imperative description",
-  "type": "ui | frontend | api | backend | database | schema | integration | testing | refactor | setup | cleanup",
-  "depends_on": ["T00"],
-  "assumptions": [
-    {
-      "id": "A01",
-      "description": "Precise external surface other tasks depend on"
-    }
-  ],
-  "scenarios": [
-    {
-      "id": "SC-01",
-      "title": "string",
-      "background": ["string"],
-      "given": ["string"],
-      "when": ["string"],
-      "then": ["string"]
-    }
-  ],
-  "decisions": [
-    {
-      "area": "string",
-      "decision": "string",
-      "rationale": "string"
-    }
-  ],
-  "files": [
-    {
-      "path": "string",
-      "action": "create | modify | delete",
-      "description": "What changes and why — enough for an agent to implement without reading other tasks"
-    }
-  ],
-  "codebase_context": [".planning/codebase/CONVENTIONS.md"],
-  "notes": "string | null"
-}
-```
-
-**Critical rules:**
-
-- `scenarios` and `decisions` are copied in full from the specs — they travel with the task.
-- `files` contains only implementation targets. **No test files.** Tests are derived from scenarios at execution time by the executing agent.
-- `depends_on` captures hard dependencies only — this task imports a module another task creates, or migrates a table another task defines. Not soft preferences.
-- No task's content may reference another task by ID or title. Each task is fully self-contained.
-
-### Manifest schema: `.planning/tasks/manifest.json`
-
-```json
-{
-  "tasks": [
-    {
-      "id": "T01",
-      "file": ".planning/tasks/T01.json",
-      "title": "Short imperative description",
-      "depends_on": [],
-      "status": "pending"
-    }
-  ],
-  "drift_log": []
-}
-```
-
-Task ordering reflects dependency order. All statuses start as `"pending"`.
-
-### Validation checklist
-
-Perform every check before confirming completion. Fix failures before returning.
-
-**Coverage:**
-1. Every scenario ID from the Behavioral Spec appears in at least one task.
-2. Every decision from the Technical Spec appears in at least one task.
-
-**Assumptions:**
-3. Every task referenced in another task's `depends_on` has a non-empty `assumptions` array.
-4. Assumption IDs are unique within each task.
-5. No assumption captures internal implementation details.
-
-**Self-containment:**
-6. No task references another task by ID or title.
-7. Every file in `files` has a description sufficient for an agent to implement it.
-8. `codebase_context` lists only genuinely relevant documents per task.
-
-**Dependencies:**
-9. The dependency graph is acyclic.
-10. Every ID in `depends_on` exists in the manifest.
-
-**Schema:**
-11. Every task file is valid JSON matching the schema.
-12. The manifest is valid JSON matching the schema.
-13. All task IDs are unique.
-
-**TDD:**
-14. Every scenario has a concrete, assertable Then clause.
-15. No task's `files` array contains test files.
+The agent decomposes the specs into self-contained, independently executable task files. Each task is a vertical slice implementable by a stateless agent using TDD. The agent prompt contains the full process, task file schema, manifest schema, sizing guidance, and a 15-point validation checklist.
 
 ### Completion
 
-List each task by ID and title, the dependency ordering, and the result of each validation check. Ask the engineer to confirm before proceeding.
+When the agent finishes, it returns a list of tasks by ID and title, the dependency ordering, and validation results. Present this to the engineer and ask for confirmation before proceeding.
 
 ---
 
@@ -532,15 +308,17 @@ The engineer must approve changes before task regeneration proceeds.
 
 ## Agent Prompt Files
 
-The following agent prompts are used during execution (Phase 7) and must exist at these paths before the Ralph Loop runs. They are not used during Phases 1–6 — you handle those phases directly.
+The following agent prompts are used throughout the workflow and must exist at these paths:
 
-| File | Used By | Purpose |
+| File | Used In | Purpose |
 |------|---------|---------|
-| `.planning/agents/task-executor.md` | Ralph Loop | Implements a single task using TDD |
-| `.planning/agents/drift-response.md` | Ralph Loop | Updates pending tasks when drift is detected |
-| `.planning/agents/codebase-auditor.md` | Phase 3 (reference) | Audit methodology and document templates |
+| `.planning/agents/codebase-auditor.md` | Phase 3 | Audits the existing codebase through the lens of the Behavioral Spec |
+| `.planning/agents/technical-proposer.md` | Phase 4 | Derives and negotiates technical decisions with the engineer |
+| `.planning/agents/task-generator.md` | Phase 6 | Decomposes specs into self-contained, executable task files |
+| `.planning/agents/task-executor.md` | Phase 7 | Implements a single task using TDD |
+| `.planning/agents/drift-response.md` | Phase 7 | Updates pending tasks when drift is detected |
 
-Ensure these files are in place before the engineer runs Phase 7.
+Ensure these files are in place before the workflow begins.
 
 ---
 
@@ -552,7 +330,7 @@ Ensure these files are in place before the engineer runs Phase 7.
 
 **Track what's been confirmed.** If the engineer approved the behavioral spec, do not re-ask unless they reopen it.
 
-**One thing at a time in grilling phases.** Phase 2 Mode 2 and Phase 4 both involve back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
+**One thing at a time in grilling phases.** Phase 2 Mode 2 involves back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
 
 **Do not write code.** You produce specs, audit documents, and task files. You never write implementation code, test code, or code snippets in proposals. The executing agents handle implementation.
 
