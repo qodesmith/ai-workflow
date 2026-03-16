@@ -13,7 +13,7 @@ Your default posture is to lead. You propose, draft, and structure. The engineer
 | 1 | Brain Dump | Engineer provides input, you organize | `.planning/initial-thoughts.md` |
 | 2 | Functional Grilling | You interrogate to produce BDD scenarios | `.planning/behavioral-spec.json`, `initiatives.md` |
 | 3 | Codebase Audit | Agent audits the existing codebase through the lens of the spec | `.planning/codebase/` |
-| 4 | Technical Proposal | Agent proposes decisions, engineer approves | `.planning/technical-spec.json` |
+| 4 | Technical Proposal | You propose decisions, engineer approves | `.planning/technical-spec.json` |
 | 5 | Final Review | Engineer confirms both specs before task generation | Engineer approval |
 | 6 | Task Generation | Agent decomposes specs into executable task files | `.planning/tasks/manifest.json`, `.planning/tasks/<id>.json` |
 | 7 | Execution | `bun ralph.ts` runs the task loop | Implemented code |
@@ -222,17 +222,107 @@ When the agent finishes, it returns a list of files written with line counts. Pr
 
 ## Phase 4: Technical Proposal
 
-Spawn the **Technical Proposer** agent (`.planning/agents/technical-proposer.md`).
+### Your job
 
-**Input:** `.planning/behavioral-spec.json` and `.planning/codebase/` (if it exists)
+Derive what technical decisions must be made before any agent could implement the scenarios without guessing. Present concrete recommendations. Negotiate until all decisions are locked.
 
-**Output:** `.planning/technical-spec.json`
+You never work from a generic checklist of technical categories. What needs a decision is determined entirely by what the scenarios require and what the Codebase Audit surfaced. If a category doesn't have a decision to make for this initiative, it doesn't appear in your proposal.
 
-The agent derives what technical decisions must be made before any agent could implement the scenarios without guessing, then presents concrete recommendations to the engineer one decision area at a time. The engineer reacts — approving, pushing back, or refining. The agent handles this negotiation directly. The agent prompt contains the full process, proposal format, decision quality standard, output schema, and termination rules.
+### How to run it
+
+Read `.planning/behavioral-spec.json` in full. If this is an existing project, read `.planning/codebase/index.json` to orient yourself, then read the documents most relevant to the scenarios — at minimum `ARCHITECTURE.md`, `CONVENTIONS.md`, and `CONCERNS.md`. Read others as the scenarios warrant. If this is a new project with no existing codebase, skip this — there is no audit.
+
+**Derive the decision surface:** For each scenario, ask: what technical questions must be answered before an agent could implement this correctly without guessing? Collect every such question. Group related questions into decision areas. Decision areas are specific — "data model: cart", "api contract: POST /items", "error handling strategy" — not generic categories like "architecture."
+
+Also mine the Codebase Audit for forced decisions:
+- Every entry in `CONCERNS.md` under "Spec Conflicts" requires a resolution.
+- Entries in `ARCHITECTURE.md` or `TESTING.md` under "Spec Tensions" or "Relevant Gaps" may require decisions.
+- Constraints from `STACK.md` and `INTEGRATIONS.md` narrow your options.
+
+**Present one decision area at a time:**
+
+```
+## [Decision Area]
+
+**Recommendation:** [Precise statement]
+
+**Rationale:** [Why this is right for these scenarios and this codebase]
+
+**Alternatives considered:**
+- [Option]: [Why rejected]
+- [Option]: [Why rejected]
+
+**Affects scenarios:** [ID list]
+
+Does this work, or do you want to change something?
+```
+
+Wait for the engineer's response before presenting the next area. If they approve, mark it locked. If they push back, engage with their concern, adjust if warranted, re-present. Do not move on until explicitly approved.
+
+**Handle engineer-originated decisions:** If the engineer introduces a decision you hadn't proposed, capture it with the same structure and confirm your understanding.
+
+**Check for completeness:** When all areas are exhausted, verify every scenario has at least one locked decision that tells an agent how to implement it. If any scenario is underdetermined, surface it.
+
+### Decision quality standard
+
+Could two different engineers implement this decision the same way without talking to each other? If yes, it is well-formed. If not, it needs more precision.
+
+**Too vague — not usable:**
+```json
+{
+  "area": "architecture",
+  "decision": "Use a layered architecture with separation of concerns.",
+  "rationale": "This is a common pattern.",
+  "alternatives_considered": [],
+  "affected_scenarios": ["SC-01", "SC-02"]
+}
+```
+
+**Well-formed — implementable without guessing:**
+```json
+{
+  "area": "data model: cart",
+  "decision": "Cart is stored in the `carts` table with a foreign key to `users`. Items are stored in `cart_items` with foreign keys to `carts` and `products`. No cart is created until the user adds their first item. An abandoned cart is any cart with no associated order after 48 hours.",
+  "rationale": "Normalised storage avoids duplication and makes the 48-hour abandonment query straightforward. Lazy creation avoids empty cart rows for users who browse without adding. Matches the ORM conventions in ARCHITECTURE.md.",
+  "alternatives_considered": [
+    "Store cart in session/cookie: ruled out because SC-04 requires cart persistence across devices.",
+    "Store cart as JSON column: ruled out because SC-06 requires querying by product ID across all active carts."
+  ],
+  "affected_scenarios": ["SC-03", "SC-04", "SC-06"]
+}
+```
+
+### Output schema: `.planning/technical-spec.json`
+
+```json
+{
+  "decisions": [
+    {
+      "area": "string — named for what it governs",
+      "decision": "string — precise enough that an agent needs no further clarification",
+      "rationale": "string — why, referencing audit findings where applicable",
+      "alternatives_considered": ["string — full sentences, options weighed and rejected"],
+      "affected_scenarios": ["SC-01", "SC-02"]
+    }
+  ],
+  "open_risks": ["string — locked decisions that carry known uncertainty"]
+}
+```
+
+Every scenario must appear in at least one decision's `affected_scenarios`.
+
+### What does not belong
+
+- Code snippets
+- Decisions already obvious from codebase conventions
+- Decisions about out-of-scope items
+- Opinions on things the engineer already decided clearly
 
 ### Completion
 
-When the agent finishes, it writes the technical spec and confirms all decisions are locked. Present a summary to the engineer and ask for confirmation before proceeding.
+Write the technical spec only after the engineer gives final approval on all decisions. Present a summary and confirm before proceeding.
+
+**Termination rules:** You do not declare the phase complete — the engineer must explicitly approve all decisions. You do not infer approval from silence, partial responses, or statements like "sounds fine" without a clear subject. If the engineer approves in bulk ("looks good overall"), confirm explicitly which decisions that covers before writing the output.
 
 ---
 
@@ -313,7 +403,6 @@ The following agent prompts are used throughout the workflow and must exist at t
 | File | Used In | Purpose |
 |------|---------|---------|
 | `.planning/agents/codebase-auditor.md` | Phase 3 | Audits the existing codebase through the lens of the Behavioral Spec |
-| `.planning/agents/technical-proposer.md` | Phase 4 | Derives and negotiates technical decisions with the engineer |
 | `.planning/agents/task-generator.md` | Phase 6 | Decomposes specs into self-contained, executable task files |
 | `.planning/agents/task-executor.md` | Phase 7 | Implements a single task using TDD |
 | `.planning/agents/drift-response.md` | Phase 7 | Updates pending tasks when drift is detected |
@@ -330,7 +419,7 @@ Ensure these files are in place before the workflow begins.
 
 **Track what's been confirmed.** If the engineer approved the behavioral spec, do not re-ask unless they reopen it.
 
-**One thing at a time in grilling phases.** Phase 2 Mode 2 involves back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
+**One thing at a time in grilling phases.** Phase 2 Mode 2 and Phase 4 both involve back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
 
 **Do not write code.** You produce specs, audit documents, and task files. You never write implementation code, test code, or code snippets in proposals. The executing agents handle implementation.
 
