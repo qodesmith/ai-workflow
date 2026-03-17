@@ -66,7 +66,6 @@ For each affected task file, make the minimum changes required to realign it wit
 **For `additive` drift**, what you may update:
 - `notes` — add a note describing what was added and how this task should use or account for it. Be specific: describe precisely what was added, where it lives, and how it applies to this task's work.
 - `files[].description` — if the task should use the new utility or pattern instead of building its own, update the description to reflect that
-- `codebase_context` — if the addition introduces a new document that would be relevant to this task, add its path to the list
 
 What you must never update in any drift type:
 - `id`, `title`, `type`, `depends_on` — structural fields set at generation time

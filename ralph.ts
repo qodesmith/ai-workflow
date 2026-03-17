@@ -81,18 +81,14 @@ async function writeManifest(manifest: Manifest): Promise<void> {
   await Bun.write(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
 }
 
-function allTasks(manifest: Manifest): ManifestTask[] {
-  return manifest.tasks;
-}
-
 function inProgressTask(manifest: Manifest): ManifestTask | undefined {
-  return allTasks(manifest).find((t) => t.status === "in_progress");
+  return manifest.tasks.find((t) => t.status === "in_progress");
 }
 
 // IDs of tasks that count as resolved for dependency purposes.
 function resolvedIds(manifest: Manifest): Set<string> {
   return new Set(
-    allTasks(manifest)
+    manifest.tasks
       .filter((t) => t.status === "complete" || t.status === "skipped")
       .map((t) => t.id)
   );
@@ -100,7 +96,7 @@ function resolvedIds(manifest: Manifest): Set<string> {
 
 function nextFailedTask(manifest: Manifest): ManifestTask | undefined {
   const resolved = resolvedIds(manifest);
-  return allTasks(manifest).find(
+  return manifest.tasks.find(
     (t) =>
       t.status === "failed" &&
       t.depends_on.every((dep) => resolved.has(dep))
@@ -109,7 +105,7 @@ function nextFailedTask(manifest: Manifest): ManifestTask | undefined {
 
 function nextPendingTask(manifest: Manifest): ManifestTask | undefined {
   const resolved = resolvedIds(manifest);
-  return allTasks(manifest).find(
+  return manifest.tasks.find(
     (t) =>
       t.status === "pending" &&
       t.depends_on.every((dep) => resolved.has(dep))
@@ -117,7 +113,7 @@ function nextPendingTask(manifest: Manifest): ManifestTask | undefined {
 }
 
 function allComplete(manifest: Manifest): boolean {
-  return allTasks(manifest).every(
+  return manifest.tasks.every(
     (t) => t.status === "complete" || t.status === "skipped"
   );
 }
@@ -298,7 +294,7 @@ async function preflight(): Promise<void> {
 
   // Validate the dependency graph is a DAG (no cycles).
   const manifest = await readManifest();
-  const tasks = allTasks(manifest);
+  const tasks = manifest.tasks;
   const taskIds = new Set(tasks.map((t) => t.id));
 
   // Check for references to non-existent tasks while building adjacency.
@@ -364,7 +360,7 @@ while (true) {
 
   {
     const checkManifest = await readManifest();
-    const unverified = allTasks(checkManifest).find(
+    const unverified = checkManifest.tasks.find(
       (t) => t.status === "complete" && t.completion != null && !t.loop_verified
     );
     if (unverified) {
@@ -395,7 +391,7 @@ while (true) {
         failed_reason: null,
       }));
       manifest = await readManifest();
-      task = allTasks(manifest).find((t) => t.id === task!.id)!;
+      task = manifest.tasks.find((t) => t.id === task!.id)!;
       resuming = true;
     } else {
       task = nextPendingTask(manifest);
@@ -417,7 +413,7 @@ while (true) {
 
       await updateTask(task.id, (t) => ({ ...t, status: "in_progress" }));
       manifest = await readManifest();
-      task = allTasks(manifest).find((t) => t.id === task!.id)!;
+      task = manifest.tasks.find((t) => t.id === task!.id)!;
     }
   }
 
@@ -514,7 +510,7 @@ If the task cannot be completed, write your completion record and emit <status>F
 
   // Verify completion record was written
   const updatedManifest = await readManifest();
-  const completedTask = allTasks(updatedManifest).find((t) => t.id === task!.id)!;
+  const completedTask = updatedManifest.tasks.find((t) => t.id === task!.id)!;
 
   if (completedTask.completion == null) {
     printDivider();

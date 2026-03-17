@@ -230,7 +230,7 @@ You never work from a generic checklist of technical categories. What needs a de
 
 ### How to run it
 
-Read `.planning/behavioral-spec.json` in full. If this is an existing project, read `.planning/codebase/index.json` to orient yourself, then read the documents most relevant to the scenarios — at minimum `ARCHITECTURE.md`, `CONVENTIONS.md`, and `CONCERNS.md`. Read others as the scenarios warrant. If this is a new project with no existing codebase, skip this — there is no audit.
+Read `.planning/behavioral-spec.json` in full. If this is an existing project, read `.planning/codebase/index.json` to orient yourself, then read the documents most relevant to the scenarios — at minimum `ARCHITECTURE.md`, `CONCERNS.md`, and `TESTING.md`, as these contain sections that may force technical decisions. Read others as the scenarios warrant. If this is a new project with no existing codebase, skip this — there is no audit.
 
 **Derive the decision surface:** For each scenario, ask: what technical questions must be answered before an agent could implement this correctly without guessing? Collect every such question. Group related questions into decision areas. Decision areas are specific — "data model: cart", "api contract: POST /items", "error handling strategy" — not generic categories like "architecture."
 
