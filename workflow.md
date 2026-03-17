@@ -8,11 +8,11 @@ This workflow transforms an idea — however rough — into a precise, machine-e
 
 The workflow runs one initiative at a time. An initiative is whatever you decide to build right now — a new app, a new feature, a major capability. It can be small or large. Phase 2 helps you scope it appropriately.
 
-Each initiative runs through seven phases (one conditional): brain dump, grilling, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
+Each initiative runs through eight phases (two conditional): brain dump, grilling, reference gathering, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
 
 For larger products, the brain dump will naturally describe more than one initiative's worth of work. Phase 2 handles this by scoping the current initiative and capturing everything else as future initiatives in `initiatives.md`. Each future initiative gets its own full workflow run when its time comes — not pre-specified now.
 
-**Prerequisites:** Phases 1–6 run in a conversational Claude session. Phase 7 (the Ralph Loop) requires [Bun](https://bun.sh) and Docker with the built-in `sandbox` command (`docker sandbox run claude <project-root>`), which mounts the project directory into an isolated container for each agent invocation.
+**Prerequisites:** Phases 1–7 run in a conversational Claude session. Phase 8 (the Ralph Loop) requires [Bun](https://bun.sh) and Docker with the built-in `sandbox` command (`docker sandbox run claude <project-root>`), which mounts the project directory into an isolated container for each agent invocation.
 
 ---
 
@@ -26,10 +26,11 @@ For larger products, the brain dump will naturally describe more than one initia
 |---|---|---|
 | `.planning/initial-thoughts.md` | Phase 1 | Structured brain dump |
 | `.planning/behavioral-spec.json` | Phase 2 | BDD scenarios — source of truth for what to build |
-| `.planning/codebase/` | Phase 3 | Codebase audit documents (existing projects only) |
-| `.planning/technical-spec.json` | Phase 4 | Locked technical decisions |
-| `.planning/tasks/manifest.json` | Phase 6 | Living execution record |
-| `.planning/tasks/<id>.json` | Phase 6 | Self-contained task files |
+| `.planning/references.md` | Phase 3 | External references the engineer provided (optional) |
+| `.planning/codebase/` | Phase 4 | Codebase audit documents (existing projects only) |
+| `.planning/technical-spec.json` | Phase 5 | Locked technical decisions |
+| `.planning/tasks/manifest.json` | Phase 7 | Living execution record |
+| `.planning/tasks/<id>.json` | Phase 7 | Self-contained task files |
 | `.planning/agents/` | Included with workflow | Agent prompts used throughout the workflow |
 
 When any artifact changes, all downstream artifacts must be updated before execution continues.
@@ -38,7 +39,7 @@ When any artifact changes, all downstream artifacts must be updated before execu
 
 ## Mid-Initiative Corrections
 
-If a spec needs to change after Phase 5 — a failed task surfaces an ambiguity, a technical decision turns out to be wrong — correct it and work forward:
+If a spec needs to change after Phase 6 — a failed task surfaces an ambiguity, a technical decision turns out to be wrong — correct it and work forward:
 
 - **Behavioral change** → update `.planning/behavioral-spec.json`, check `.planning/technical-spec.json` for consistency, regenerate affected tasks.
 - **Technical change** → update `.planning/technical-spec.json`, regenerate affected tasks.
@@ -90,7 +91,31 @@ The phase ends when the engineer explicitly confirms the scenario list is comple
 
 ---
 
-## Phase 3: Codebase Audit
+## Phase 3: Reference Gathering
+
+This phase always runs. After the behavioral spec is confirmed, the AI asks the engineer whether there are external references that will inform this build — codebases the project depends on, API documentation, design systems, platform specs, internal wiki pages, or any other material that isn't part of the project itself but shapes how it should be built.
+
+The engineer provides whatever they have in whatever form: repo paths (possibly scoped to specific directories), URLs, pasted text, uploaded documents. The AI records each reference in `.planning/references.md` with enough structure that later phases know what each reference is and where to find it:
+
+```markdown
+# References
+
+## [Name]
+- **Location:** [path, URL, or "inline below"]
+- **Relevance:** [Why this matters for the current initiative]
+- **Scope:** [Specific directories, files, or sections to focus on — if applicable]
+
+## [Name]
+...
+```
+
+This is intake, not processing. The AI does not read or analyze the references at this stage — it records what the engineer provides and moves on. The references are consumed later: the Technical Proposal (Phase 5) reads them when it needs to understand external constraints, and the Task Generator and executors can reference them when they need to understand APIs, component libraries, or integration points.
+
+**Output:** `.planning/references.md`
+
+---
+
+## Phase 4: Codebase Audit
 
 Skipped for new projects with no existing code.
 
@@ -102,9 +127,9 @@ Each audit starts blind — no assumptions carried forward from previous initiat
 
 ---
 
-## Phase 4: Technical Proposal
+## Phase 5: Technical Proposal
 
-The AI reads the `.planning/behavioral-spec.json` and Codebase Audit, derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
+The AI reads the `.planning/behavioral-spec.json`, Codebase Audit (if it exists), and `.planning/references.md` (if it exists), derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
 
 The engineer reacts — approving, pushing back, or refining. The AI adjusts. This continues until all decisions are explicitly approved. The engineer never has to originate a technical decision from scratch — only react to proposals.
 
@@ -112,7 +137,7 @@ The engineer reacts — approving, pushing back, or refining. The AI adjusts. Th
 
 ---
 
-## Phase 5: Final Review
+## Phase 6: Final Review
 
 _This is a conversational phase — it is handled by the system prompt agent (`system-prompt.md`), not a dedicated agent file._
 
@@ -122,7 +147,7 @@ No tasks are generated until the engineer explicitly approves both specs.
 
 ---
 
-## Phase 6: Task Generation
+## Phase 7: Task Generation
 
 The AI spawns the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window with only the specs and Codebase Audit as input. The accumulated planning conversation is intentionally absent.
 
@@ -134,7 +159,7 @@ Tasks with hard dependencies on each other are sequenced via `depends_on` — th
 
 ---
 
-## Phase 7: Execution (Ralph Loop)
+## Phase 8: Execution (Ralph Loop)
 
 ```bash
 bun ralph.ts

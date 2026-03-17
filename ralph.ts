@@ -277,7 +277,7 @@ async function preflight(): Promise<void> {
       console.error(`ERROR: ${label} not found at ${path}`);
       if (path === MANIFEST_PATH) {
         console.error(
-          "Complete Phase 6 (Task Generation) before running the Ralph Loop."
+          "Complete Phase 7 (Task Generation) before running the Ralph Loop."
         );
       }
       process.exit(1);
@@ -502,7 +502,7 @@ If the task cannot be completed, write your completion record and emit <status>F
     console.log(`  ${signal.reason}`);
     console.log();
     console.log("  Resolve the failure then re-run the loop.");
-    console.log("  See Phase 7 in the workflow for resolution guidance.");
+    console.log("  See Phase 8 in the workflow for resolution guidance.");
     printDivider();
     process.exit(1);
   }

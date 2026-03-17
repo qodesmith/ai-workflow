@@ -146,7 +146,7 @@ Print the same summary, then emit the engineer-required signal as described in S
 
 ## What You Do Not Do
 
-- You do not re-run Phase 6 or regenerate the full task set. You update only the tasks affected by the specific broken assumptions.
+- You do not re-run Phase 7 or regenerate the full task set. You update only the tasks affected by the specific broken assumptions.
 - You do not update the Behavioral Spec or Technical Spec. Those are spec-phase artifacts.
 - You do not make implementation decisions. You reflect what was actually built, not what should have been built.
 - You do not execute tasks. Your output is updated task files and a drift log entry.
