@@ -1,3 +1,9 @@
+The files in this folder represent my AI workflow. `workflow.md` is the version meant for humans to read and `system-prompt.md` is the prompt that kicks off the workflow.
+
+Analyze all the files in this workflow and check for errors, things that are unclear or ambiguous, confusion. inconsistencies, contradictions, and anything else that looks out of place.
+
+---
+
 # Workflow Issues
 
 Cross-referencing all seven files: `workflow.md`, `system-prompt.md`, `ralph.ts`, `codebase-auditor.md`, `task-generator.md`, `task-executor.md`, and `drift-response.md`.
@@ -26,7 +32,7 @@ If the executor emits `<status>COMPLETE</status>` but fails to write `"status": 
 
 In reality, ralph.ts spawns it as a one-shot subprocess via `runClaude`. The agent can only output `<engineer_required>` or `<drift_resolved/>` — it can never reach the "if the engineer confirms" branches. The prompt could confuse the agent into waiting for input that will never arrive, or into making a choice on the engineer's behalf that it shouldn't.
 
-**Fix:** Rewrite drift-response.md Step 4 to make clear that for decision drift, the agent should *always* output `<engineer_required>` with a detailed summary. The "if the engineer confirms" branches should be removed or moved to documentation describing what the engineer does after the loop halts.
+**Fix:** Rewrite drift-response.md Step 4 to make clear that for decision drift, the agent should _always_ output `<engineer_required>` with a detailed summary. The "if the engineer confirms" branches should be removed or moved to documentation describing what the engineer does after the loop halts.
 
 **Files:** `drift-response.md` (Step 4)
 
