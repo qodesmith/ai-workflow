@@ -12,11 +12,14 @@
 // ─────────────────────────────────────────────
 
 import { $ } from "bun";
-import { join } from "path";
+import { join, resolve } from "path";
 
-const MANIFEST_PATH = ".planning/tasks/manifest.json";
-const TASKS_DIR = ".planning/tasks";
-const AGENTS_DIR = ".planning/agents";
+// Resolve the project root once at startup so all paths are absolute
+// and the Docker sandbox can be given an explicit workspace mount.
+const PROJECT_ROOT = resolve(".");
+const MANIFEST_PATH = join(PROJECT_ROOT, ".planning/tasks/manifest.json");
+const TASKS_DIR = join(PROJECT_ROOT, ".planning/tasks");
+const AGENTS_DIR = join(PROJECT_ROOT, ".planning/agents");
 
 // ─── Types ────────────────────────────────────
 
@@ -233,8 +236,10 @@ function parseStatusSignal(output: string): StatusSignal {
 
 async function runClaude(agentFile: string, prompt: string): Promise<string> {
   try {
+    // Mount the project root explicitly so the agent has read-write access
+    // to .planning/ regardless of what directory invoked `bun ralph.ts`.
     const result =
-      await $`docker sandbox run claude -- --dangerously-skip-permissions --append-system-prompt-file ${agentFile} -p ${prompt}`.text();
+      await $`docker sandbox run claude ${PROJECT_ROOT} -- --dangerously-skip-permissions --append-system-prompt-file ${agentFile} -p ${prompt}`.text();
     return result;
   } catch (err) {
     // Non-zero exit — return whatever output was produced
