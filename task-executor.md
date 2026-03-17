@@ -164,10 +164,20 @@ Write the `completion` object with `status: "failed"` and emit:
     "notes": null
   }
 }
+```
 
 ---
 
 **Critical ordering rule:** Always write your record to the manifest *before* emitting your status signal. The loop reads the manifest immediately after seeing the signal. A signal with no record will cause the loop to treat the task as still in progress and exit with an error.
+
+**Schema validation:** After writing your record to the manifest (and after updating the task file's `test_files` array), validate both files:
+
+```bash
+bun schemas.ts manifest
+bun schemas.ts task <ID>
+```
+
+If either command reports errors, fix them before emitting your status signal. The Ralph Loop validates the manifest and task file after you finish — schema errors will cause the loop to reject your output and retry the task, wasting an iteration.
 
 ---
 

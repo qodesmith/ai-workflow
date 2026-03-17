@@ -12,7 +12,7 @@ Each initiative runs through seven phases (one conditional): brain dump, grillin
 
 For larger products, the brain dump will naturally describe more than one initiative's worth of work. Phase 2 handles this by scoping the current initiative and capturing everything else as future initiatives in `initiatives.md`. Each future initiative gets its own full workflow run when its time comes — not pre-specified now.
 
-**Prerequisites:** Phases 1–6 run in a conversational Claude session. Phase 7 (the Ralph Loop) requires [Bun](https://bun.sh) and Docker with the built-in `sandbox` command (`docker sandbox run claude <project-root>`), which mounts the project directory into an isolated container for each agent invocation.
+**Prerequisites:** Phases 1–6 run in a conversational Claude session. Phase 7 (the Ralph Loop) requires [Bun](https://bun.sh), [ArkType](https://arktype.io) (`bun add arktype`), and Docker with the built-in `sandbox` command (`docker sandbox run claude <project-root>`), which mounts the project directory into an isolated container for each agent invocation.
 
 ---
 
@@ -31,8 +31,30 @@ For larger products, the brain dump will naturally describe more than one initia
 | `.planning/tasks/manifest.json` | Phase 6 | Living execution record |
 | `.planning/tasks/<id>.json` | Phase 6 | Self-contained task files |
 | `.planning/agents/` | Included with workflow | Agent prompts used throughout the workflow |
+| `schemas.ts` | Included with workflow | ArkType schemas for all JSON artifacts; CLI validator |
 
 When any artifact changes, all downstream artifacts must be updated before execution continues.
+
+---
+
+## Schema Validation
+
+Every JSON artifact in the workflow has a corresponding ArkType schema defined in `schemas.ts`. These schemas are the structural contract between agents — they define the exact shape each file must conform to, and they are validated at runtime.
+
+**Two layers of validation:**
+
+`schemas.ts` serves as both a CLI tool and a library. Agents validate their own output by running it after writing JSON files (`bun schemas.ts manifest`, `bun schemas.ts task T01`). The Ralph Loop imports the same schemas and validates on every read as a safety net — if an agent skips validation or crashes before running it, the loop catches malformed data before acting on it.
+
+**CLI usage:**
+
+```bash
+bun schemas.ts manifest       # validate manifest.json
+bun schemas.ts task T01        # validate a single task file
+bun schemas.ts task-all        # validate all task files
+bun schemas.ts specs           # validate behavioral-spec.json and technical-spec.json
+bun schemas.ts index           # validate codebase index.json
+bun schemas.ts all             # validate everything
+```
 
 ---
 
@@ -143,13 +165,13 @@ bun ralph.ts
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
 
 **Each iteration:**
-1. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all complete
+1. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all resolved
 2. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox (`docker sandbox run claude <project-root>`) with the task file and any prior progress context
 3. Agent implements the task, writes a completion record to the manifest, emits a status signal
-4. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task
+4. On `INCOMPLETE` or no signal — validate the manifest, then continue to next iteration on the same task
 5. On `FAILED` — loop halts, surfaces the reason; resolve it and re-run
-6. On `COMPLETE` — check for drift; if implementation deviated from the plan, spawn the **Drift Response** agent (`.planning/agents/drift-response.md`) to update affected pending tasks
-7. Verify declared output files exist on disk
+6. On `COMPLETE` — validate the manifest and task file, verify declared output files (implementation and test) exist on disk
+7. Check for drift; if implementation deviated from the plan, spawn the **Drift Response** agent (`.planning/agents/drift-response.md`) to update affected pending tasks, then validate all modified files
 8. Commit all changes atomically
 9. Advance to the next task
 

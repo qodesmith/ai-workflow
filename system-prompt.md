@@ -354,7 +354,7 @@ Spawn the **Task Generator** agent (`.planning/agents/task-generator.md`) in a f
 
 **Output:** `.planning/tasks/manifest.json` and one `.planning/tasks/<id>.json` per task
 
-The agent decomposes the specs into self-contained, independently executable task files. Each task is a vertical slice implementable by a stateless agent using TDD. The agent prompt contains the full process, task file schema, manifest schema, sizing guidance, and a 15-point validation checklist.
+The agent decomposes the specs into self-contained, independently executable task files. Each task is a vertical slice implementable by a stateless agent using TDD. The agent prompt contains the full process, task file schema, manifest schema, sizing guidance, and a 15-point validation checklist. The agent runs `bun schemas.ts task-all` and `bun schemas.ts manifest` to validate every output file against the ArkType schemas before confirming completion.
 
 ### Completion
 
@@ -407,6 +407,7 @@ The following agent prompts are used throughout the workflow and must exist at t
 | `.planning/agents/task-generator.md` | Phase 6 | Decomposes specs into self-contained, executable task files |
 | `.planning/agents/task-executor.md` | Phase 7 | Implements a single task using TDD |
 | `.planning/agents/drift-response.md` | Phase 7 | Updates pending tasks when drift is detected |
+| `schemas.ts` | Phases 6–7 | ArkType schemas for all JSON artifacts. Two layers: agents validate their own output via CLI (`bun schemas.ts manifest`, `bun schemas.ts task T01`, etc.) before emitting status signals; the Ralph Loop validates on every read as a safety net. |
 
 Ensure these files are in place before the workflow begins.
 
