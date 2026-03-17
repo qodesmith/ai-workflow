@@ -160,7 +160,7 @@ Return a brief confirmation listing each task by ID and title, the dependency or
 
 **`status`** — always `"pending"` at generation time. Valid values during execution: `pending`, `in_progress`, `complete`, `failed`, `skipped`. The engineer sets `skipped` manually when a task is no longer needed; the loop treats it as resolved for dependency purposes.
 
-**`progress`** — not set at generation time. During execution, the loop accumulates an array of progress entries here — one per incomplete iteration. Each entry has `iteration`, `completed_files`, `remaining_files`, and `notes`. You do not need to create this field; the executing agent appends to it at runtime.
+**`progress`** — not set at generation time. During execution, the executing agent accumulates an array of progress entries here — one per incomplete iteration. Each entry has `iteration`, `completed_files`, `remaining_files`, and `notes`. You do not need to create this field; the executing agent appends to it at runtime.
 
 **`completion`** — not set at generation time. Written by the executing agent when a task finishes (complete or failed). Contains `summary`, `matched_plan`, `drift_type`, `broken_assumptions`, and `notes`.
 

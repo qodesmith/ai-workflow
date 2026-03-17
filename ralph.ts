@@ -63,6 +63,7 @@ interface ManifestTask {
   failed_reason?: string | null;
   progress?: ProgressEntry[];
   completion?: CompletionRecord | null;
+  loop_verified?: boolean;
 }
 
 interface Manifest {
@@ -287,6 +288,14 @@ async function preflight(): Promise<void> {
     }
   }
 
+  // Verify git is available and the project is a git repository.
+  const gitCheck = await $`git rev-parse --is-inside-work-tree`.nothrow().quiet();
+  if (gitCheck.exitCode !== 0) {
+    console.error("ERROR: Not a git repository (or git is not installed).");
+    console.error("Initialize a git repo (`git init`) before running the Ralph Loop.");
+    process.exit(1);
+  }
+
   // Validate the dependency graph is a DAG (no cycles).
   const manifest = await readManifest();
   const tasks = allTasks(manifest);
@@ -347,6 +356,23 @@ console.log(`  Manifest: ${MANIFEST_PATH}`);
 printDivider();
 
 while (true) {
+  // ── Check for unverified complete tasks ─────
+  // If the agent wrote status: "complete" but the loop never ran file
+  // verification or drift handling (e.g., the agent crashed after writing
+  // the manifest but before emitting the signal), revert to in_progress
+  // so the normal COMPLETE path runs on the next pick-up.
+
+  {
+    const checkManifest = await readManifest();
+    const unverified = allTasks(checkManifest).find(
+      (t) => t.status === "complete" && t.completion != null && !t.loop_verified
+    );
+    if (unverified) {
+      console.log(`\n⚠ Task ${unverified.id} is marked complete but was never verified. Re-entering COMPLETE path.`);
+      await updateTask(unverified.id, (t) => ({ ...t, status: "in_progress" }));
+    }
+  }
+
   // ── Determine current task ──────────────────
   // Always resume an in_progress task before starting anything new.
 
@@ -606,6 +632,11 @@ Otherwise output:
     }
   }
 
+  // ── Mark as verified ────────────────────────
+  // The loop has confirmed files exist and handled drift. Mark the task
+  // so the unverified-complete check at the top of the loop won't re-enter.
+  await updateTask(task.id, (t) => ({ ...t, status: "complete", loop_verified: true }));
+
   // ── Commit ───────────────────────────────────
 
   console.log("\nCommitting...");
@@ -613,21 +644,23 @@ Otherwise output:
   try {
     // Stage only the files this task is responsible for:
     // 1. Declared implementation files from the task's files array
-    // 2. The .planning/ directory (manifest updates, drift log, task file edits)
-    //
-    // Test files are not declared in the files array — they live alongside
-    // implementation files and are picked up by staging the parent directories
-    // of each declared file. This avoids `git add -A` which would stage
-    // unrelated files (temp files, .env, editor artifacts, etc.).
+    // 2. Co-located test files (*.test.* / *.spec.* in the same directories)
+    // 3. The .planning/ directory (manifest updates, drift log, task file edits)
 
+    const filesToAdd = filesToCheck
+      .map((f) => $.escape(join(PROJECT_ROOT, f)))
+      .join(" ");
+    await $`git add ${{ raw: filesToAdd }}`.quiet();
+
+    // Stage co-located test files in the same directories as declared files
     const parentDirs = new Set<string>();
     for (const filepath of filesToCheck) {
       parentDirs.add(join(PROJECT_ROOT, filepath, ".."));
     }
-
-    for (const dir of parentDirs) {
-      await $`git add ${dir}`.quiet();
-    }
+    const testGlobs = [...parentDirs]
+      .flatMap((dir) => [`${$.escape(dir)}/*.test.*`, `${$.escape(dir)}/*.spec.*`])
+      .join(" ");
+    await $`git add ${{ raw: testGlobs }}`.nothrow().quiet();
     await $`git add .planning/`.quiet();
 
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();

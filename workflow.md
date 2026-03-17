@@ -94,7 +94,7 @@ The phase ends when the engineer explicitly confirms the scenario list is comple
 
 Skipped for new projects with no existing code.
 
-For existing projects, the AI spawns the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`). The agent reads the Behavioral Spec first, then audits the codebase through that lens — asking what it needs to understand about the existing code to implement each scenario correctly. It produces seven focused documents — covering stack, integrations, architecture, structure, conventions, testing, and known concerns — plus an `index.json` registry that the Task Generator uses to select which audit documents are relevant to each task.
+For existing projects, the AI spawns the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`). The agent reads the Behavioral Spec first, then audits the codebase through that lens — asking what it needs to understand about the existing code to implement each scenario correctly. It produces eight files — seven focused documents covering stack, integrations, architecture, structure, conventions, testing, and known concerns, plus an `index.json` registry that the Task Generator uses to select which audit documents are relevant to each task.
 
 Each audit starts blind — no assumptions carried forward from previous initiative runs. The agent never reads or quotes content from environment files, credentials, secrets, or key files — it notes their existence only.
 
@@ -143,7 +143,7 @@ bun ralph.ts
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
 
 **Each iteration:**
-1. Resume any `in_progress` task first; if none, retry the first `failed` task; if none, pick the next `pending` task whose dependencies are all complete
+1. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all complete
 2. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox (`docker sandbox run claude <project-root>`) with the task file and any prior progress context
 3. Agent implements the task, writes a completion record to the manifest, emits a status signal
 4. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task

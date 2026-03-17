@@ -32,7 +32,7 @@ Your task file content is provided in the user prompt below these instructions. 
 
 ### Step 2: Write tests first
 
-Translate every Given/When/Then scenario into executable test cases before writing any implementation code. Each scenario maps to at least one test. The Given clause sets up the precondition, the When clause triggers the behavior, the Then clause asserts the outcome.
+Translate every Given/When/Then scenario into executable test cases before writing any implementation code. Each scenario maps to at least one test. If a scenario has a `background` array, those are shared preconditions that apply before the Given — treat them as setup that every test for that scenario inherits. The Given clause sets up the scenario-specific precondition, the When clause triggers the behavior, the Then clause asserts the outcome.
 
 Follow the testing conventions in the codebase audit documents listed in `codebase_context` — use the same framework, structure, and patterns already established in the codebase.
 
@@ -98,7 +98,17 @@ Write the `completion` object to the task's manifest entry and set `status` to `
 
 For `additive` drift, `broken_assumptions` will be empty — nothing broke. Instead, write a detailed `summary` and `notes` describing exactly what was added, where it lives, and which areas of pending work it likely affects. The Drift Response agent uses this to identify affected tasks, since it cannot rely on assumption cross-referencing for additive drift.
 
-For each broken assumption in `structural` or `decision` drift, find it in the task file's `assumptions` array by `id`, copy its `description`, and write what is actually true in `reality`.
+For each broken assumption in `structural` or `decision` drift, find it in the task file's `assumptions` array by `id`, write that as `assumption_id`, copy its `description` as `assumption`, and describe what is actually true in `reality`:
+
+```json
+"broken_assumptions": [
+  {
+    "assumption_id": "A01",
+    "assumption": "The text of the assumption that was violated",
+    "reality": "What is actually true after implementation"
+  }
+]
+```
 
 ---
 

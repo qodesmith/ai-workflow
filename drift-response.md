@@ -27,7 +27,6 @@ If you do not emit one of these signals, the loop cannot distinguish success fro
 
 Read the `drift_type` from the completion record:
 
-- `local` — internal implementation differed but the external surface matched the plan. Downstream tasks are unaffected. Write a `drift_log` entry recording this and emit `<drift_resolved/>`. No task files need updating.
 - `structural` — something a downstream task depends on differs from what was planned. Downstream tasks that reference that surface are affected.
 - `decision` — a locked Technical Spec decision was departed from. This is the highest-severity drift type. Downstream tasks governed by that decision may be fundamentally wrong, not just referencing stale details.
 - `additive` — the implementation produced something that wasn't in the plan and that pending tasks may need to know about or use. Nothing existing is wrong, but the plan is incomplete and pending tasks may be missing context that would change how they implement their work.
@@ -40,7 +39,7 @@ For each broken assumption in the completion record, scan every pending task fil
 
 - `files[].path` — does any pending task reference the old file path?
 - `files[].description` — does any description reference something about the old surface that changed?
-- `decisions[].decision` — does any embedded decision reference the departed Technical Spec decision?
+- `decisions[].decision` — does any embedded decision reference the changed external surface?
 - `notes` — does any note reference the changed surface?
 - `assumptions[].description` — does any pending task's own assumptions reference what changed?
 
@@ -105,7 +104,7 @@ Append to the manifest's `drift_log` array:
 ```json
 {
   "triggered_by": "task-id",
-  "drift_type": "structural | decision | additive | local",
+  "drift_type": "structural | decision | additive",
   "tasks_updated": ["task-id"],
   "engineer_flagged": true,
   "summary": "Plain-language description of what changed, what was updated, and why."
@@ -118,7 +117,7 @@ Append to the manifest's `drift_log` array:
 
 After all file writes and the drift log entry are complete, emit your signal as the final thing in your output.
 
-**For `local`, `structural`, or `additive` drift** (no engineer input needed):
+**For `structural` or `additive` drift** (no engineer input needed):
 
 Print a brief summary of what you did — drift type, number of tasks scanned, tasks updated by ID — then emit:
 
