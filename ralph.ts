@@ -644,11 +644,14 @@ Otherwise output:
     // 2. Declared test files from the task's test_files array
     // 3. The .planning/ directory (manifest updates, drift log, task file edits)
 
-    const filesToStage = filesToCheck
-      .concat(taskData.test_files)
-      .map((f) => $.escape(join(PROJECT_ROOT, f)))
-      .join(" ");
-    await $`git add ${{ raw: filesToStage }}`.quiet();
+    const allTaskFiles = filesToCheck.concat(taskData.test_files ?? []);
+
+    if (allTaskFiles.length > 0) {
+      const filesToStage = allTaskFiles
+        .map((f) => $.escape(join(PROJECT_ROOT, f)))
+        .join(" ");
+      await $`git add ${{ raw: filesToStage }}`.quiet();
+    }
     await $`git add ${join(PROJECT_ROOT, ".planning/")}`.quiet();
 
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();

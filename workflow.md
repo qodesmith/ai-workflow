@@ -143,13 +143,13 @@ bun ralph.ts
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
 
 **Each iteration:**
-1. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all complete
+1. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all resolved
 2. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox (`docker sandbox run claude <project-root>`) with the task file and any prior progress context
 3. Agent implements the task, writes a completion record to the manifest, emits a status signal
 4. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task
 5. On `FAILED` — loop halts, surfaces the reason; resolve it and re-run
-6. On `COMPLETE` — check for drift; if implementation deviated from the plan, spawn the **Drift Response** agent (`.planning/agents/drift-response.md`) to update affected pending tasks
-7. Verify declared output files exist on disk
+6. On `COMPLETE` — verify declared output files exist on disk
+7. Check for drift; if implementation deviated from the plan, spawn the **Drift Response** agent (`.planning/agents/drift-response.md`) to update affected pending tasks
 8. Commit all changes atomically
 9. Advance to the next task
 

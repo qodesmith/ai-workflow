@@ -23,6 +23,7 @@ Every task you execute is a vertical slice — fully functional across every lay
 ### Step 1: Orient yourself
 
 Your task file content is provided in the user prompt below these instructions. Before doing anything else, read it fully and understand:
+
 - What scenarios you are satisfying (`scenarios` array) — these become your tests
 - What files you are creating or modifying (`files` array) — implementation targets only, not test files
 - The `test_files` array — initially empty, you will populate it after writing tests in Step 2
@@ -150,7 +151,7 @@ Write the `completion` object with `status: "failed"` and emit:
 <status>FAILED: clear explanation of what is blocking and what would need to change</status>
 ```
 
-> **Note:** Failed tasks use `matched_plan: true` / `drift_type: "none"` because the drift classification describes how the *implementation* deviated from the plan. A failed task has no implementation to compare — it never got far enough to drift. The loop does not run drift handling on failed tasks.
+> **Note:** Failed tasks use `matched_plan: true` / `drift_type: "none"` because the drift classification describes how the _implementation_ deviated from the plan. A failed task has no implementation to compare — it never got far enough to drift. The loop does not run drift handling on failed tasks.
 
 ```json
 {
@@ -164,10 +165,11 @@ Write the `completion` object with `status: "failed"` and emit:
     "notes": null
   }
 }
+```
 
 ---
 
-**Critical ordering rule:** Always write your record to the manifest *before* emitting your status signal. The loop reads the manifest immediately after seeing the signal. A signal with no record will cause the loop to treat the task as still in progress and exit with an error.
+**Critical ordering rule:** Always write your record to the manifest _before_ emitting your status signal. The loop reads the manifest immediately after seeing the signal. A signal with no record will cause the loop to treat the task as still in progress and exit with an error.
 
 ---
 
@@ -190,7 +192,7 @@ Do not rewrite test files that already exist and are correctly written. Do not r
 
 A task has failed when it genuinely cannot be completed — not when it is difficult or requires a deviation. Use `FAILED` only when:
 
-- A file or module the task depends on *reading from* does not exist and its contents cannot be inferred from the task file or the codebase — typically a sequencing failure where a prior task's output is missing
+- A file or module the task depends on _reading from_ does not exist and its contents cannot be inferred from the task file or the codebase — typically a sequencing failure where a prior task's output is missing
 - The task's specification is contradictory and there is no reasonable interpretation that satisfies all constraints
 
 A task should never fail because it needs to create new files — that is normal. A task should never fail because it needs to install a third-party library — install it. Use `FAILED` only when something the task genuinely needs as input is absent and cannot be produced within this task's scope.
