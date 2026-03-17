@@ -234,7 +234,7 @@ function parseStatusSignal(output: string): StatusSignal {
 async function runClaude(agentFile: string, prompt: string): Promise<string> {
   try {
     const result =
-      await $`docker sandbox claude --dangerously-skip-permissions --append-system-prompt-file ${agentFile} -p ${prompt}`.text();
+      await $`docker sandbox run claude -- --dangerously-skip-permissions --append-system-prompt-file ${agentFile} -p ${prompt}`.text();
     return result;
   } catch (err) {
     // Non-zero exit — return whatever output was produced
