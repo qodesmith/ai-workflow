@@ -362,7 +362,7 @@ Manifest location for writing your progress or completion record: ${MANIFEST_PAT
 Current iteration number for progress records: ${iteration}
 
 Implement the task. If you complete it fully, write your completion record and emit <status>COMPLETE</status>.
-If you run out of context or cannot finish in this iteration, write a progress record and emit <status>INCOMPLETE</status>.
+If you have made progress but cannot finish in this iteration, write a progress record and emit <status>INCOMPLETE</status>.
 If the task cannot be completed, write your completion record and emit <status>FAILED: reason</status>.`;
 
   // ── Execute ─────────────────────────────────

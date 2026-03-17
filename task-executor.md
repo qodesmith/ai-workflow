@@ -102,9 +102,9 @@ For each broken assumption in `structural` or `decision` drift, find it in the t
 
 ---
 
-**Outcome B — Ran out of context or could not finish this iteration**
+**Outcome B — Task is not yet complete**
 
-If you run out of context window, hit an unrecoverable error mid-task, or cannot finish all remaining files in this iteration — do not emit COMPLETE with partial work. Write a progress record instead, then emit:
+If you have finished some files but not all, do not emit COMPLETE with partial work. Write a progress record instead, then emit:
 
 ```
 <status>INCOMPLETE</status>
@@ -120,7 +120,7 @@ If you run out of context window, hit an unrecoverable error mid-task, or cannot
 }
 ```
 
-**Important:** The loop derives which files are done and which remain by checking the filesystem directly — it does not rely on `completed_files` or `remaining_files`. You do not need to populate those arrays accurately. What matters is the `notes` field. Write it as if you are handing off to someone starting cold: what was in progress, what decision you were in the middle of, what the next file should do and why. If you genuinely have no context left to write notes, emit `INCOMPLETE` without a progress record — the loop will recover from the filesystem alone.
+**Important:** The loop derives which files are done and which remain by checking the filesystem directly — it does not rely on `completed_files` or `remaining_files`. You do not need to populate those arrays accurately. What matters is the `notes` field. Write it as if you are handing off to someone starting cold: what was in progress, what decision you were in the middle of, what the next file should do and why.
 
 ---
 
@@ -160,7 +160,7 @@ The resumption context tells you which implementation files are already on disk.
 
 - **No test files exist** — the previous iteration did not complete Step 2. Begin there: write tests, confirm they fail cleanly, then implement.
 - **Test files exist but tests are failing** — the previous iteration wrote tests but did not finish the implementation. Run the tests to see what's still failing, then continue implementing.
-- **Test files exist and tests pass** — the previous iteration may have been complete but ran out of context before emitting `COMPLETE`. Verify the implementation files are all present and correct, confirm all tests pass, then emit `COMPLETE`.
+- **Test files exist and tests pass** — the previous iteration likely finished. Verify the implementation files are all present and correct, confirm all tests pass, then emit `COMPLETE`.
 
 Use the agent notes in the resumption context if present — they may describe where things stood mid-implementation or mid-test. If absent, infer state from what's on disk.
 
