@@ -8,7 +8,7 @@ This workflow transforms an idea — however rough — into a precise, machine-e
 
 The workflow runs one initiative at a time. An initiative is whatever you decide to build right now — a new app, a new feature, a major capability. It can be small or large. Phase 2 helps you scope it appropriately.
 
-Each initiative runs through seven phases: brain dump, grilling, codebase audit, technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
+Each initiative runs through seven phases (one conditional): brain dump, grilling, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
 
 For larger products, the brain dump will naturally describe more than one initiative's worth of work. Phase 2 handles this by scoping the current initiative and capturing everything else as future initiatives in `initiatives.md`. Each future initiative gets its own full workflow run when its time comes — not pre-specified now.
 

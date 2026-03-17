@@ -31,6 +31,8 @@ Read the `drift_type` from the completion record:
 - `decision` — a locked Technical Spec decision was departed from. This is the highest-severity drift type. Downstream tasks governed by that decision may be fundamentally wrong, not just referencing stale details.
 - `additive` — the implementation produced something that wasn't in the plan and that pending tasks may need to know about or use. Nothing existing is wrong, but the plan is incomplete and pending tasks may be missing context that would change how they implement their work.
 
+Note: `local` drift is handled directly by the Ralph Loop and is never forwarded to this agent. You will only ever see `structural`, `decision`, or `additive`.
+
 ### Step 2: Identify affected tasks
 
 **For `structural` drift:**
@@ -103,14 +105,14 @@ Append to the manifest's `drift_log` array:
 ```json
 {
   "triggered_by": "task-id",
-  "drift_type": "structural | decision | additive",
+  "drift_type": "structural | decision | additive | local",
   "tasks_updated": ["task-id"],
   "engineer_flagged": true,
   "summary": "Plain-language description of what changed, what was updated, and why."
 }
 ```
 
-`engineer_flagged` is `true` only for `decision`-type drift that required engineer input.
+`engineer_flagged` is `true` only for `decision`-type drift that required engineer input. The `drift_type` field may also be `"local"` for entries written directly by the Ralph Loop — this agent does not produce those entries.
 
 ### Step 6: Emit your status signal
 

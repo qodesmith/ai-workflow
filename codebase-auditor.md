@@ -45,7 +45,7 @@ These rules apply to every document you write. They are not preferences — they
 
 Start by reading `.planning/behavioral-spec.json` in full. Note the actors, scenarios, and any implied system interactions. Then explore the codebase by focus area, guided by what the scenarios require.
 
-**These are goals, not steps.** For each focus area below, the goal is stated first. Use whatever commands, tools, and reading strategies get you there. The bash examples are illustrative — they are reasonable starting points for common project types, not an exhaustive script to execute. Adapt them to what you actually find. A Go project needs different commands than a Node project. A monorepo needs different navigation than a flat src/ directory. Look at the codebase first, then decide how to explore it.
+**These are goals, not steps.** For each focus area below, the goal is stated first. Use whatever commands, tools, and reading strategies get you there. A Go project needs different commands than a Node project. A monorepo needs different navigation than a flat src/ directory. Look at the codebase first, then decide how to explore it.
 
 If a focus area yields nothing useful for the current Behavioral Spec scenarios, do not manufacture findings. Document what is absent or not applicable.
 
@@ -57,13 +57,6 @@ If a focus area yields nothing useful for the current Behavioral Spec scenarios,
 
 Start by looking for whatever package or dependency manifests exist at the project root. Then look for where external services are imported or configured. Note the existence of environment files without reading their contents.
 
-```bash
-# Examples — adapt to the actual project type
-cat package.json requirements.txt go.mod Cargo.toml pyproject.toml 2>/dev/null
-ls -la *.config.* tsconfig.json .nvmrc .python-version .tool-versions 2>/dev/null
-ls .env* 2>/dev/null  # existence only — never read contents
-```
-
 ---
 
 ### Architecture
@@ -71,12 +64,6 @@ ls .env* 2>/dev/null  # existence only — never read contents
 **Goal:** Understand how the codebase is structured at the system level — what the entry points are, how layers are organized, how data flows, and how the pieces relevant to the Behavioral Spec fit together.
 
 Start with the directory structure to understand the overall shape, then follow the entry points inward. Read actual source files — especially ones that touch the same concerns as the Behavioral Spec scenarios.
-
-```bash
-# Examples — adapt to the actual project type
-find . -type d -not -path '*/node_modules/*' -not -path '*/.git/*' | sort | head -60
-ls src/index.* src/main.* src/app.* src/server.* app/page.* app/layout.* 2>/dev/null
-```
 
 ---
 
@@ -86,12 +73,6 @@ ls src/index.* src/main.* src/app.* src/server.* app/page.* app/layout.* 2>/dev/
 
 Look at how existing features are organized. Read a few representative files to understand the pattern. The output of this focus area should answer "where do I put a new X?" for the types of things the Behavioral Spec scenarios require.
 
-```bash
-# Examples — adapt to the actual project type
-find src/ -maxdepth 3 -type f | sort | head -80
-ls -la *.config.* next.config.* vite.config.* 2>/dev/null
-```
-
 ---
 
 ### Conventions
@@ -99,11 +80,6 @@ ls -la *.config.* next.config.* vite.config.* 2>/dev/null
 **Goal:** Understand the coding conventions well enough that a task-executing agent can write code that is indistinguishable from existing code — naming, formatting, error handling, module structure, import style.
 
 Read linting and formatting config if it exists. More importantly, read actual source files — especially ones that are similar to what the Behavioral Spec scenarios will require building. Derive conventions from what you see, not just from config files.
-
-```bash
-# Examples — adapt to the actual project type
-cat .eslintrc* eslint.config.* .prettierrc* biome.json .rubocop.yml 2>/dev/null
-```
 
 ---
 
@@ -113,13 +89,6 @@ cat .eslintrc* eslint.config.* .prettierrc* biome.json .rubocop.yml 2>/dev/null
 
 Find the test framework config and read a few representative test files. Focus on the patterns: how tests are structured, how mocking works, how test data is created, where tests live relative to the code they test.
 
-```bash
-# Examples — adapt to the actual project type
-cat jest.config.* vitest.config.* pytest.ini setup.cfg 2>/dev/null
-find . \( -name "*.test.*" -o -name "*.spec.*" -o -path "*/__tests__/*" \) \
-  -not -path '*/node_modules/*' | head -30
-```
-
 ---
 
 ### Concerns
@@ -127,12 +96,6 @@ find . \( -name "*.test.*" -o -name "*.spec.*" -o -path "*/__tests__/*" \) \
 **Goal:** Surface anything in the existing codebase that could affect the implementation of the Behavioral Spec scenarios — tech debt, fragile areas, known issues, security gaps, or anything that a task-executing agent needs to know to avoid making things worse.
 
 Look for explicit markers like TODO and FIXME comments. Look for unusually large or complex files. Look for stubs, empty implementations, and anything that appears incomplete. Cross-reference findings against the Behavioral Spec — a concern only matters here if it's relevant to what needs to be built.
-
-```bash
-# Examples — adapt to the actual project type
-grep -rn "TODO\|FIXME\|HACK\|XXX" src/ 2>/dev/null | head -50
-find src/ -type f | xargs wc -l 2>/dev/null | sort -rn | head -20
-```
 
 ---
 

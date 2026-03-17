@@ -25,6 +25,7 @@ Every task you execute is a vertical slice — fully functional across every lay
 Your task file content is provided in the user prompt below these instructions. Before doing anything else, read it fully and understand:
 - What scenarios you are satisfying (`scenarios` array) — these become your tests
 - What files you are creating or modifying (`files` array) — implementation targets only, not test files
+- The `test_files` array — initially empty, you will populate it after writing tests in Step 2
 - What technical decisions govern your implementation (`decisions` array)
 - What assumptions this task makes about its own output (`assumptions` array)
 - What codebase documents to read (`codebase_context` — paths to audit files, read them before implementing)
@@ -41,6 +42,8 @@ Follow the testing conventions in the codebase audit documents listed in `codeba
 Confirm the failure is clean: tests should fail because the behavior is not implemented yet — not because of a missing import, a syntax error, a misconfigured test runner, or a broken test setup. Fix any such issues before proceeding. You are looking for red that means "this behavior does not exist yet" — not red that means "this test is broken."
 
 Do not write a single line of implementation until all tests are written and failing cleanly.
+
+After writing your test files, update the task file's `test_files` array with the paths of every test file you created (relative to the project root). The Ralph Loop uses this array to stage test files for commit.
 
 ### Step 3: Implement to make tests pass
 
@@ -147,6 +150,8 @@ Write the `completion` object with `status: "failed"` and emit:
 <status>FAILED: clear explanation of what is blocking and what would need to change</status>
 ```
 
+> **Note:** Failed tasks use `matched_plan: true` / `drift_type: "none"` because the drift classification describes how the *implementation* deviated from the plan. A failed task has no implementation to compare — it never got far enough to drift. The loop does not run drift handling on failed tasks.
+
 ```json
 {
   "status": "failed",
@@ -159,9 +164,6 @@ Write the `completion` object with `status: "failed"` and emit:
     "notes": null
   }
 }
-```
-
-> **Note:** Failed tasks use `matched_plan: true` / `drift_type: "none"` because the drift classification describes how the *implementation* deviated from the plan. A failed task has no implementation to compare — it never got far enough to drift. The loop does not run drift handling on failed tasks.
 
 ---
 

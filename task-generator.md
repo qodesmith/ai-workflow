@@ -85,6 +85,7 @@ Return a brief confirmation listing each task by ID and title, the dependency or
   "scenarios": [
     {
       "id": "string",
+      "actor": "string",
       "title": "string",
       "background": ["string"],
       "given": ["string"],
@@ -107,6 +108,8 @@ Return a brief confirmation listing each task by ID and title, the dependency or
     }
   ],
   "codebase_context": ["string"],
+  "commit_type": "string",
+  "test_files": [],
   "notes": "string | null"
 }
 ```
@@ -130,6 +133,10 @@ Return a brief confirmation listing each task by ID and title, the dependency or
 **`files`** — every implementation file this task creates, modifies, or deletes. Do not include test files — those are derived by the executing agent from the `scenarios` array and written as the first act of TDD execution. `description` explains what changes and why — enough that the implementing agent knows what to do without reading other tasks.
 
 **`codebase_context`** — list of paths to relevant codebase audit documents, e.g. `[".planning/codebase/CONVENTIONS.md", ".planning/codebase/TESTING.md"]`. The executing agent reads these files directly during implementation. Paths only — no inline content. Empty array for new projects with no codebase audit.
+
+**`commit_type`** — the conventional commit type used when the Ralph Loop commits this task's work. Derive from the task's nature: `feat` for new features, `fix` for bug fixes, `refactor` for restructuring, `test` for test-only tasks, `chore` for setup/cleanup, `docs` for documentation. Defaults to `feat` if unclear.
+
+**`test_files`** — always `[]` at generation time. The executing agent populates this array with the paths of test files it creates during Step 2 (TDD). The Ralph Loop uses it to stage test files for commit. Do not pre-populate — test file paths are determined by the executor based on codebase conventions.
 
 **`notes`** — anything the implementing agent needs to know that isn't captured by the above: known gotchas, ordering constraints within the task, explicit callouts from the Concerns audit that affect this work. `null` if nothing.
 
@@ -193,13 +200,11 @@ Perform every check. Fix failures before confirming completion.
 10. Every ID listed in a task's `depends_on` exists as a task ID in the manifest.
 
 **Schema checks:**
-11. Every task file is valid JSON matching the Task File Schema above.
-12. The manifest is valid JSON matching the Manifest Schema above.
-13. All task IDs are unique across the full task set.
+11. All output files are valid JSON with unique task IDs, conforming to the schemas above.
 
 **TDD checks:**
-14. Every scenario assigned to a task has a concrete, assertable Then clause — the executing agent must be able to translate it into a failing test without ambiguity. Flag any scenario whose outcome is vague, unmeasurable, or cannot be expressed as an assertion.
-15. No task's `files` array contains test files — tests are derived from scenarios at execution time, not pre-declared.
+12. Every scenario assigned to a task has a concrete, assertable Then clause — the executing agent must be able to translate it into a failing test without ambiguity. Flag any scenario whose outcome is vague, unmeasurable, or cannot be expressed as an assertion.
+13. No task's `files` array contains test files — tests are derived from scenarios at execution time, not pre-declared. The `test_files` array must be empty at generation time.
 
 ---
 

@@ -389,6 +389,7 @@ while (true) {
         ...t,
         status: "in_progress",
         failed_reason: null,
+        completion: null,
       }));
       manifest = await readManifest();
       task = manifest.tasks.find((t) => t.id === task!.id)!;
@@ -640,28 +641,21 @@ Otherwise output:
   try {
     // Stage only the files this task is responsible for:
     // 1. Declared implementation files from the task's files array
-    // 2. Co-located test files (*.test.* / *.spec.* in the same directories)
+    // 2. Declared test files from the task's test_files array
     // 3. The .planning/ directory (manifest updates, drift log, task file edits)
 
-    const filesToAdd = filesToCheck
+    const filesToStage = filesToCheck
+      .concat(taskData.test_files)
       .map((f) => $.escape(join(PROJECT_ROOT, f)))
       .join(" ");
-    await $`git add ${{ raw: filesToAdd }}`.quiet();
-
-    // Stage co-located test files in the same directories as declared files
-    const parentDirs = new Set<string>();
-    for (const filepath of filesToCheck) {
-      parentDirs.add(join(PROJECT_ROOT, filepath, ".."));
-    }
-    for (const dir of parentDirs) {
-      await $`git add ${dir}/*.test.* ${dir}/*.spec.*`.nothrow().quiet();
-    }
+    await $`git add ${{ raw: filesToStage }}`.quiet();
     await $`git add ${join(PROJECT_ROOT, ".planning/")}`.quiet();
 
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();
 
     if (diffResult.exitCode !== 0) {
-      await $`git commit -m ${"feat(" + task.id + "): " + task.title}`;
+      const commitType: string = taskData.commit_type ?? "feat";
+      await $`git commit -m ${commitType + "(" + task.id + "): " + task.title}`;
     } else {
       console.log("  Nothing new to commit.");
     }
