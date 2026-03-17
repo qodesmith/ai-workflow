@@ -346,7 +346,7 @@ while (true) {
   }
 
   const iteration = (task.progress?.length ?? 0) + 1;
-  const taskFile = join(TASKS_DIR, `${task.id}.json`);
+  const taskFile = join(PROJECT_ROOT, task.file);
 
   if (!(await Bun.file(taskFile).exists())) {
     console.error(`ERROR: Task file not found: ${taskFile}`);
@@ -542,7 +542,25 @@ Otherwise output:
   console.log("\nCommitting...");
 
   try {
-    await $`git add -A`.quiet();
+    // Stage only the files this task is responsible for:
+    // 1. Declared implementation files from the task's files array
+    // 2. The .planning/ directory (manifest updates, drift log, task file edits)
+    //
+    // Test files are not declared in the files array — they live alongside
+    // implementation files and are picked up by staging the parent directories
+    // of each declared file. This avoids `git add -A` which would stage
+    // unrelated files (temp files, .env, editor artifacts, etc.).
+
+    const parentDirs = new Set<string>();
+    for (const filepath of filesToCheck) {
+      parentDirs.add(join(filepath, ".."));
+    }
+
+    for (const dir of parentDirs) {
+      await $`git add ${dir}`.quiet();
+    }
+    await $`git add .planning/`.quiet();
+
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();
 
     if (diffResult.exitCode !== 0) {

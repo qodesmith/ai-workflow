@@ -175,7 +175,7 @@ A task has failed when it genuinely cannot be completed — not when it is diffi
 
 A task should never fail because it needs to create new files — that is normal. A task should never fail because it needs to install a third-party library — install it. Use `FAILED` only when something the task genuinely needs as input is absent and cannot be produced within this task's scope.
 
-When the task fails, still write a completion record with `status: "failed"` and `failed_reason` set to the same explanation as the `<status>FAILED: ...>` signal. This ensures the manifest always reflects the full state.
+When the task fails, still write a completion record with `status: "failed"` and `failed_reason` set to the same explanation as the `<status>FAILED: ...</status>` signal. This ensures the manifest always reflects the full state.
 
 ---
 
