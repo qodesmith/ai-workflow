@@ -24,14 +24,13 @@ For larger products, the brain dump will naturally describe more than one initia
 
 | Artifact | Created by | Purpose |
 |---|---|---|
-| `initiatives.md` | Phase 2 | Tracks all initiatives across the life of the product (lives at project root) |
-| `initial-thoughts.md` | Phase 1 | Structured brain dump |
-| `behavioral-spec.json` | Phase 2 | BDD scenarios — source of truth for what to build |
-| `codebase/` | Phase 3 | Codebase audit documents (existing projects only) |
-| `technical-spec.json` | Phase 4 | Locked technical decisions |
-| `tasks/manifest.json` | Phase 6 | Living execution record |
-| `tasks/<id>.json` | Phase 6 | Self-contained task files |
-| `agents/` | Included with workflow | Agent prompts used throughout the workflow |
+| `.planning/initial-thoughts.md` | Phase 1 | Structured brain dump |
+| `.planning/behavioral-spec.json` | Phase 2 | BDD scenarios — source of truth for what to build |
+| `.planning/codebase/` | Phase 3 | Codebase audit documents (existing projects only) |
+| `.planning/technical-spec.json` | Phase 4 | Locked technical decisions |
+| `.planning/tasks/manifest.json` | Phase 6 | Living execution record |
+| `.planning/tasks/<id>.json` | Phase 6 | Self-contained task files |
+| `.planning/agents/` | Included with workflow | Agent prompts used throughout the workflow |
 
 When any artifact changes, all downstream artifacts must be updated before execution continues.
 
@@ -95,7 +94,7 @@ The phase ends when the engineer explicitly confirms the scenario list is comple
 
 Skipped for new projects with no existing code.
 
-For existing projects, the AI spawns the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`). The agent reads the Behavioral Spec first, then audits the codebase through that lens — asking what it needs to understand about the existing code to implement each scenario correctly. It produces eight files — seven focused documents covering stack, integrations, architecture, structure, conventions, testing, and known concerns, plus an `index.json` registry that the Task Generator uses to select which audit documents are relevant to each task.
+For existing projects, the AI spawns the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`). The agent reads `.planning/behavioral-spec.json` first, then audits the codebase through that lens — asking what it needs to understand about the existing code to implement each scenario correctly. It produces eight files — seven focused documents covering stack, integrations, architecture, structure, conventions, testing, and known concerns, plus an `index.json` registry that the Task Generator uses to select which audit documents are relevant to each task.
 
 Each audit starts blind — no assumptions carried forward from previous initiative runs. The agent never reads or quotes content from environment files, credentials, secrets, or key files — it notes their existence only.
 
@@ -105,7 +104,7 @@ Each audit starts blind — no assumptions carried forward from previous initiat
 
 ## Phase 4: Technical Proposal
 
-The AI reads the Behavioral Spec and Codebase Audit, derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
+The AI reads the `.planning/behavioral-spec.json` and Codebase Audit, derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
 
 The engineer reacts — approving, pushing back, or refining. The AI adjusts. This continues until all decisions are explicitly approved. The engineer never has to originate a technical decision from scratch — only react to proposals.
 
@@ -117,7 +116,7 @@ The engineer reacts — approving, pushing back, or refining. The AI adjusts. Th
 
 _This is a conversational phase — it is handled by the system prompt agent (`system-prompt.md`), not a dedicated agent file._
 
-The engineer reviews the Behavioral Spec and Technical Spec side by side and confirms both accurately reflect their intent. This is the last checkpoint before tasks are generated. Changes here cascade forward — a behavioral change requires a consistency check on the Technical Spec and task regeneration; a technical change requires task regeneration.
+The engineer reviews `.planning/behavioral-spec.json` and `.planning/technical-spec.json` side by side and confirms both accurately reflect their intent. This is the last checkpoint before tasks are generated. Changes here cascade forward — a behavioral change requires a consistency check on `.planning/technical-spec.json` and task regeneration; a technical change requires task regeneration.
 
 No tasks are generated until the engineer explicitly approves both specs.
 
