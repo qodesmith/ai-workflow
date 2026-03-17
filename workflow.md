@@ -24,6 +24,7 @@ For larger products, the brain dump will naturally describe more than one initia
 
 | Artifact | Created by | Purpose |
 |---|---|---|
+| `initiatives.md` | Phase 2 | Tracks all initiatives across the life of the product (lives at project root) |
 | `initial-thoughts.md` | Phase 1 | Structured brain dump |
 | `behavioral-spec.json` | Phase 2 | BDD scenarios — source of truth for what to build |
 | `codebase/` | Phase 3 | Codebase audit documents (existing projects only) |

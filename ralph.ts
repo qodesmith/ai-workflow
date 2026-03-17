@@ -246,7 +246,7 @@ async function runClaude(agentFile: string, prompt: string): Promise<string> {
   } catch (err) {
     // Non-zero exit — return whatever output was produced
     if (err instanceof Error && "stdout" in err) {
-      return (err as { stdout: string }).stdout ?? "";
+      return String((err as { stdout: unknown }).stdout ?? "");
     }
     return "";
   }

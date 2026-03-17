@@ -164,6 +164,10 @@ Return a brief confirmation listing each task by ID and title, the dependency or
 
 **`completion`** — not set at generation time. Written by the executing agent when a task finishes (complete or failed). Contains `summary`, `matched_plan`, `drift_type`, `broken_assumptions`, and `notes`.
 
+**`failed_reason`** — not set at generation time. Written by the executing agent when a task fails. A plain-language explanation of why the task could not be completed, matching the `FAILED` status signal.
+
+**`loop_verified`** — not set at generation time. Set to `true` by the Ralph Loop after a completed task passes file verification and drift handling. Used internally by the loop to distinguish tasks that finished cleanly from tasks whose completion was never verified (e.g., the process was killed between the agent writing the manifest and the loop seeing the signal).
+
 ---
 
 ## Validation
