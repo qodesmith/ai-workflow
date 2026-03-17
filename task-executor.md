@@ -175,7 +175,7 @@ If your prompt includes a **Resumption Context** section, this task was previous
 
 The resumption context tells you which implementation files are already on disk. Before doing anything else, check the manifest and then determine where in the TDD cycle the previous iteration stopped:
 
-- **Completion record already exists in the manifest with `status: "complete"`** — the previous iteration finished but the process was killed before the loop saw the signal. Do not modify the manifest or rewrite any files. Verify all tests pass, then re-emit `<status>COMPLETE</status>`.
+- **Completion record already exists in the manifest** — the previous iteration finished but the process was killed before the loop saw the signal. (The loop may have reverted the status to `"in_progress"` while leaving the completion record intact.) Do not modify the manifest or rewrite any files. Verify all tests pass, then re-emit `<status>COMPLETE</status>`.
 - **No test files exist** — the previous iteration did not complete Step 2. Begin there: write tests, confirm they fail cleanly, then implement.
 - **Test files exist but tests are failing** — the previous iteration wrote tests but did not finish the implementation. Run the tests to see what's still failing, then continue implementing.
 - **Test files exist and tests pass** — the previous iteration likely finished. Verify the implementation files are all present and correct, confirm all tests pass, then emit `COMPLETE`.

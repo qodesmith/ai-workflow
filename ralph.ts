@@ -661,7 +661,7 @@ Otherwise output:
       .flatMap((dir) => [`${$.escape(dir)}/*.test.*`, `${$.escape(dir)}/*.spec.*`])
       .join(" ");
     await $`git add ${{ raw: testGlobs }}`.nothrow().quiet();
-    await $`git add .planning/`.quiet();
+    await $`git add ${join(PROJECT_ROOT, ".planning/")}`.quiet();
 
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();
 
