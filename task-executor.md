@@ -88,13 +88,13 @@ Write the `completion` object to the task's manifest entry and set `status` to `
 }
 ```
 
-**Classify drift honestly:**
+**Classify drift honestly.** If `drift_type` is anything other than `none`, set `matched_plan` to `false`:
 
-- `none` — implemented exactly as planned
-- `local` — internal implementation differed but the external surface — anything a downstream task could depend on — matched the plan exactly
-- `structural` — at least one thing a downstream task depends on differs from what the task specified
-- `decision` — a locked Technical Spec decision could not be followed and was departed from
-- `additive` — implementation produced something that wasn't in the plan and that pending tasks may need to know about or use. Nothing existing is wrong, but the plan was incomplete.
+- `none` — implemented exactly as planned. `matched_plan: true`.
+- `local` — internal implementation differed but the external surface — anything a downstream task could depend on — matched the plan exactly. `matched_plan: false`.
+- `structural` — at least one thing a downstream task depends on differs from what the task specified. `matched_plan: false`.
+- `decision` — a locked Technical Spec decision could not be followed and was departed from. `matched_plan: false`.
+- `additive` — implementation produced something that wasn't in the plan and that pending tasks may need to know about or use. Nothing existing is wrong, but the plan was incomplete. `matched_plan: false`.
 
 For `additive` drift, `broken_assumptions` will be empty — nothing broke. Instead, write a detailed `summary` and `notes` describing exactly what was added, where it lives, and which areas of pending work it likely affects. The Drift Response agent uses this to identify affected tasks, since it cannot rely on assumption cross-referencing for additive drift.
 

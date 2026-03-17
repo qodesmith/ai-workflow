@@ -100,9 +100,9 @@ Each audit starts blind — no assumptions carried forward from previous initiat
 
 ## Phase 4: Technical Proposal
 
-The AI spawns the **Technical Proposer** agent (`.planning/agents/technical-proposer.md`). The agent reads the Behavioral Spec and Codebase Audit, derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
+The AI reads the Behavioral Spec and Codebase Audit, derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
 
-The engineer reacts — approving, pushing back, or refining. The agent adjusts. This continues until all decisions are explicitly approved. The engineer never has to originate a technical decision from scratch — only react to proposals.
+The engineer reacts — approving, pushing back, or refining. The AI adjusts. This continues until all decisions are explicitly approved. The engineer never has to originate a technical decision from scratch — only react to proposals.
 
 **Output:** `.planning/technical-spec.json`
 

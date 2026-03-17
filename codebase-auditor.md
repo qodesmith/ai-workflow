@@ -523,4 +523,4 @@ If you encounter these files, note: "`[filename]` present — contains environme
 
 ## Completion
 
-When all seven files are written, return a brief confirmation listing each file and its line count. Do not return document contents.
+When all eight files are written (seven documents plus `index.json`), return a brief confirmation listing each file and its line count. Do not return document contents.

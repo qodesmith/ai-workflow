@@ -43,6 +43,14 @@ interface CompletionRecord {
   notes: string | null;
 }
 
+interface DriftLogEntry {
+  triggered_by: string;
+  drift_type: "none" | "local" | "structural" | "decision" | "additive";
+  tasks_updated: string[];
+  engineer_flagged: boolean;
+  summary: string;
+}
+
 interface ManifestTask {
   id: string;
   file: string;
@@ -181,7 +189,7 @@ async function buildProgressContext(
 
   const notesSection = lastNotes
     ? `**Where the last iteration left off (agent notes):**\n${lastNotes}`
-    : "**Note:** The previous iteration did not leave notes (likely ran out of context). Use the file list above to orient yourself.";
+    : "**Note:** The previous iteration did not leave notes. Use the file list above to orient yourself.";
 
   return `
 
