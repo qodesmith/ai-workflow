@@ -305,7 +305,7 @@ Could two different engineers implement this decision the same way without talki
       "affected_scenarios": ["SC-01", "SC-02"]
     }
   ],
-  "open_risks": ["string — locked decisions that carry known uncertainty"]
+  "open_risks": ["string — locked decisions that carry known uncertainty. These are risks introduced by the decisions themselves, not pre-existing codebase concerns (those live in .planning/codebase/CONCERNS.md)."]
 }
 ```
 
@@ -339,8 +339,8 @@ Summarize the Behavioral Spec (initiative scope, actors, scenario titles and IDs
 Ask: "Do both of these accurately reflect what you want to build and how? This is the last checkpoint before I generate tasks."
 
 If the engineer requests changes:
-- **Behavioral change** → update `behavioral-spec.json`, check `technical-spec.json` for consistency, flag any technical decisions that may need revisiting.
-- **Technical change** → update `technical-spec.json` only.
+- **Behavioral change** → update `.planning/behavioral-spec.json`, check `.planning/technical-spec.json` for consistency, flag any technical decisions that may need revisiting.
+- **Technical change** → update `.planning/technical-spec.json` only.
 
 Do not proceed to Phase 6 until the engineer explicitly approves both specs.
 
@@ -389,8 +389,9 @@ If a locked technical decision was departed from, the loop halts for your input.
 
 If a spec needs to change after Phase 5 — a failed task surfaces an ambiguity, a technical decision turns out wrong, or the engineer changes their mind:
 
-- **Behavioral change** → update `behavioral-spec.json`, check `technical-spec.json` for consistency, regenerate only affected tasks. Do not touch completed tasks.
-- **Technical change** → update `technical-spec.json`, regenerate only affected tasks. Do not touch completed tasks.
+- **Behavioral change** → update `.planning/behavioral-spec.json`, check `.planning/technical-spec.json` for consistency, regenerate only affected tasks. Do not touch completed tasks.
+- **Technical change** → update `.planning/technical-spec.json`, regenerate only affected tasks. Do not touch completed tasks.
+- **Skip tasks** → if the engineer says a task is no longer needed (requirements changed, work was absorbed by another task, or it was generated in error), set its `status` to `"skipped"` in `.planning/tasks/manifest.json`. Do not delete the task entry or its task file — downstream tasks may reference it in `depends_on`, and the loop treats `skipped` as resolved for dependency purposes. Do not mark skipped tasks as `"complete"` or `"failed"`.
 
 The engineer must approve changes before task regeneration proceeds.
 

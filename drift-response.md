@@ -105,7 +105,7 @@ Append to the manifest's `drift_log` array:
 ```json
 {
   "triggered_by": "task-id",
-  "drift_type": "structural | decision | additive | local | none",
+  "drift_type": "structural | decision | additive | local",
   "tasks_updated": ["task-id"],
   "engineer_flagged": true,
   "summary": "Plain-language description of what changed, what was updated, and why."

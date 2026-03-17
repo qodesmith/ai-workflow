@@ -125,7 +125,7 @@ Return a brief confirmation listing each task by ID and title, the dependency or
 
 **`scenarios`** — the full text of every Behavioral Spec scenario this task implements, copied verbatim. Include `background` if the spec defines shared preconditions. Do not reference by ID only.
 
-**`decisions`** — the full text of every Technical Spec decision that governs this task's implementation, copied verbatim. Include `area`, `decision`, and `rationale`. Do not reference by area name only.
+**`decisions`** — every Technical Spec decision that governs this task's implementation. Copy only the `area`, `decision`, and `rationale` fields from each decision — omit `alternatives_considered` and `affected_scenarios`, which are planning artifacts the executing agent does not need. Do not reference by area name only.
 
 **`files`** — every implementation file this task creates, modifies, or deletes. Do not include test files — those are derived by the executing agent from the `scenarios` array and written as the first act of TDD execution. `description` explains what changes and why — enough that the implementing agent knows what to do without reading other tasks.
 
@@ -158,7 +158,11 @@ Return a brief confirmation listing each task by ID and title, the dependency or
 
 **`file`** — path to the task file, e.g. `.planning/tasks/T01.json`.
 
-**`status`** — always `"pending"` at generation time. Valid values during execution: `pending`, `in_progress`, `complete`, `failed`.
+**`status`** — always `"pending"` at generation time. Valid values during execution: `pending`, `in_progress`, `complete`, `failed`, `skipped`. The engineer sets `skipped` manually when a task is no longer needed; the loop treats it as resolved for dependency purposes.
+
+**`progress`** — not set at generation time. During execution, the loop accumulates an array of progress entries here — one per incomplete iteration. Each entry has `iteration`, `completed_files`, `remaining_files`, and `notes`. You do not need to create this field; the executing agent appends to it at runtime.
+
+**`completion`** — not set at generation time. Written by the executing agent when a task finishes (complete or failed). Contains `summary`, `matched_plan`, `drift_type`, `broken_assumptions`, and `notes`.
 
 ---
 

@@ -38,10 +38,12 @@ When any artifact changes, all downstream artifacts must be updated before execu
 
 If a spec needs to change after Phase 5 — a failed task surfaces an ambiguity, a technical decision turns out to be wrong — correct it and work forward:
 
-- **Behavioral change** → update `behavioral-spec.json`, check `technical-spec.json` for consistency, regenerate affected tasks.
-- **Technical change** → update `technical-spec.json`, regenerate affected tasks.
+- **Behavioral change** → update `.planning/behavioral-spec.json`, check `.planning/technical-spec.json` for consistency, regenerate affected tasks.
+- **Technical change** → update `.planning/technical-spec.json`, regenerate affected tasks.
 
 Only regenerate the tasks affected by the change. Completed tasks are not touched. The engineer must approve changes before task regeneration proceeds.
+
+**Skipping tasks:** If a task is no longer needed — requirements changed, the work was absorbed by another task, or it was generated in error — set its status to `"skipped"` in the manifest. Skipped tasks are treated as resolved for dependency purposes: downstream tasks will not be blocked by them. Do not mark skipped tasks as `"complete"` (dishonest) or `"failed"` (inaccurate), and do not delete them (breaks dependency chains).
 
 ---
 
@@ -110,6 +112,8 @@ The engineer reacts — approving, pushing back, or refining. The AI adjusts. Th
 
 ## Phase 5: Final Review
 
+_This is a conversational phase — it is handled by the system prompt agent (`system-prompt.md`), not a dedicated agent file._
+
 The engineer reviews the Behavioral Spec and Technical Spec side by side and confirms both accurately reflect their intent. This is the last checkpoint before tasks are generated. Changes here cascade forward — a behavioral change requires a consistency check on the Technical Spec and task regeneration; a technical change requires task regeneration.
 
 No tasks are generated until the engineer explicitly approves both specs.
@@ -137,7 +141,7 @@ bun ralph.ts
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
 
 **Each iteration:**
-1. Resume any `in_progress` task, retry any `failed` task, or pick the next `pending` task with no incomplete dependencies
+1. Resume any `in_progress` task first; if none, retry the first `failed` task; if none, pick the next `pending` task whose dependencies are all complete
 2. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox with the task file and any prior progress context
 3. Agent implements the task, writes a completion record to the manifest, emits a status signal
 4. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task

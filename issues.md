@@ -1,6 +1,6 @@
 The files in this folder represent my AI workflow. `workflow.md` is the version meant for humans to read and `system-prompt.md` is the prompt that kicks off the workflow.
 
-Analyze all the files in this workflow and check for errors, things that are unclear or ambiguous, confusion. inconsistencies, contradictions, and anything else that looks out of place.
+Analyze all the files in this workflow and check for errors, things that are unclear or ambiguous, confusion, things that are unnecessarily verbose, inconsistencies, contradictions, and anything else that looks out of place.
 
 ---
 

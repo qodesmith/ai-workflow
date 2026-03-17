@@ -432,6 +432,8 @@ For scenarios in the Behavioral Spec that touch currently untested areas:
 
 ### CONCERNS.md
 
+This document covers pre-existing codebase risks — tech debt, fragile areas, security gaps, and known bugs that are already present in the code. These are distinct from the Technical Spec's `open_risks`, which track uncertainty introduced by new technical decisions. Both are inputs to task planning but they do not overlap: CONCERNS.md describes what is already wrong, `open_risks` describes what might go wrong with what is being decided.
+
 ```markdown
 # Codebase Concerns
 

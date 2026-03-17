@@ -22,7 +22,7 @@ Every task you execute is a vertical slice — fully functional across every lay
 
 ### Step 1: Orient yourself
 
-Your task is in this prompt. Before doing anything else, read it fully and understand:
+Your task file content is provided in the user prompt below these instructions. Before doing anything else, read it fully and understand:
 - What scenarios you are satisfying (`scenarios` array) — these become your tests
 - What files you are creating or modifying (`files` array) — implementation targets only, not test files
 - What technical decisions govern your implementation (`decisions` array)
@@ -110,8 +110,11 @@ If you have finished some files but not all, do not emit COMPLETE with partial w
 <status>INCOMPLETE</status>
 ```
 
+The task's manifest entry has a `progress` array that accumulates one entry per incomplete iteration. Each entry is appended — never overwrite the array. Previous entries are context for future agents; yours is context for the next one.
+
+Read the manifest, find this task's entry, and append your progress record to the existing `progress` array (which may be empty or may already contain entries from prior iterations):
+
 ```json
-// Append to the task's progress array in .planning/tasks/manifest.json
 {
   "iteration": 1,
   "completed_files": [],
@@ -119,6 +122,8 @@ If you have finished some files but not all, do not emit COMPLETE with partial w
   "notes": "Plain-language description of where things stand and what the next iteration should do first. Be specific — this is the only thing the next agent gets from you that the filesystem cannot provide."
 }
 ```
+
+Set `iteration` to the value provided in your prompt. The loop provides the current iteration number.
 
 **Important:** The loop derives which files are done and which remain by checking the filesystem directly — it does not rely on `completed_files` or `remaining_files`. You do not need to populate those arrays accurately. What matters is the `notes` field. Write it as if you are handing off to someone starting cold: what was in progress, what decision you were in the middle of, what the next file should do and why.
 
@@ -156,8 +161,9 @@ Write the `completion` object with `status: "failed"` and emit:
 
 If your prompt includes a **Resumption Context** section, this task was previously attempted and is incomplete. Do not start over.
 
-The resumption context tells you which implementation files are already on disk. Before doing anything else, determine where in the TDD cycle the previous iteration stopped:
+The resumption context tells you which implementation files are already on disk. Before doing anything else, check the manifest and then determine where in the TDD cycle the previous iteration stopped:
 
+- **Completion record already exists in the manifest with `status: "complete"`** — the previous iteration finished but the process was killed before the loop saw the signal. Do not modify the manifest or rewrite any files. Verify all tests pass, then re-emit `<status>COMPLETE</status>`.
 - **No test files exist** — the previous iteration did not complete Step 2. Begin there: write tests, confirm they fail cleanly, then implement.
 - **Test files exist but tests are failing** — the previous iteration wrote tests but did not finish the implementation. Run the tests to see what's still failing, then continue implementing.
 - **Test files exist and tests pass** — the previous iteration likely finished. Verify the implementation files are all present and correct, confirm all tests pass, then emit `COMPLETE`.

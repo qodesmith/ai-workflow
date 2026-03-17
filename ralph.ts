@@ -23,7 +23,7 @@ const AGENTS_DIR = join(PROJECT_ROOT, ".planning/agents");
 
 // ─── Types ────────────────────────────────────
 
-type TaskStatus = "pending" | "in_progress" | "complete" | "failed";
+type TaskStatus = "pending" | "in_progress" | "complete" | "failed" | "skipped";
 
 interface ProgressEntry {
   iteration: number;
@@ -48,7 +48,7 @@ interface CompletionRecord {
 
 interface DriftLogEntry {
   triggered_by: string;
-  drift_type: "none" | "local" | "structural" | "decision" | "additive";
+  drift_type: "local" | "structural" | "decision" | "additive";
   tasks_updated: string[];
   engineer_flagged: boolean;
   summary: string;
@@ -88,36 +88,37 @@ function inProgressTask(manifest: Manifest): ManifestTask | undefined {
   return allTasks(manifest).find((t) => t.status === "in_progress");
 }
 
-function nextFailedTask(manifest: Manifest): ManifestTask | undefined {
-  const completedIds = new Set(
+// IDs of tasks that count as resolved for dependency purposes.
+function resolvedIds(manifest: Manifest): Set<string> {
+  return new Set(
     allTasks(manifest)
-      .filter((t) => t.status === "complete")
+      .filter((t) => t.status === "complete" || t.status === "skipped")
       .map((t) => t.id)
   );
+}
 
+function nextFailedTask(manifest: Manifest): ManifestTask | undefined {
+  const resolved = resolvedIds(manifest);
   return allTasks(manifest).find(
     (t) =>
       t.status === "failed" &&
-      t.depends_on.every((dep) => completedIds.has(dep))
+      t.depends_on.every((dep) => resolved.has(dep))
   );
 }
 
 function nextPendingTask(manifest: Manifest): ManifestTask | undefined {
-  const completedIds = new Set(
-    allTasks(manifest)
-      .filter((t) => t.status === "complete")
-      .map((t) => t.id)
-  );
-
+  const resolved = resolvedIds(manifest);
   return allTasks(manifest).find(
     (t) =>
       t.status === "pending" &&
-      t.depends_on.every((dep) => completedIds.has(dep))
+      t.depends_on.every((dep) => resolved.has(dep))
   );
 }
 
 function allComplete(manifest: Manifest): boolean {
-  return allTasks(manifest).every((t) => t.status === "complete");
+  return allTasks(manifest).every(
+    (t) => t.status === "complete" || t.status === "skipped"
+  );
 }
 
 async function updateTask(
@@ -284,6 +285,55 @@ async function preflight(): Promise<void> {
       }
       process.exit(1);
     }
+  }
+
+  // Validate the dependency graph is a DAG (no cycles).
+  const manifest = await readManifest();
+  const tasks = allTasks(manifest);
+  const taskIds = new Set(tasks.map((t) => t.id));
+
+  // Check for references to non-existent tasks while building adjacency.
+  for (const t of tasks) {
+    for (const dep of t.depends_on) {
+      if (!taskIds.has(dep)) {
+        console.error(`ERROR: Task ${t.id} depends on ${dep}, which does not exist in the manifest.`);
+        process.exit(1);
+      }
+    }
+  }
+
+  // Topological sort via Kahn's algorithm to detect cycles.
+  const inDegree = new Map<string, number>(tasks.map((t) => [t.id, 0]));
+  for (const t of tasks) {
+    for (const dep of t.depends_on) {
+      inDegree.set(t.id, inDegree.get(t.id)! + 1);
+    }
+  }
+
+  const queue: string[] = [];
+  for (const [id, deg] of inDegree) {
+    if (deg === 0) queue.push(id);
+  }
+
+  let sorted = 0;
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    sorted++;
+    // Find tasks that depend on `current` and decrement their in-degree.
+    for (const t of tasks) {
+      if (t.depends_on.includes(current)) {
+        const newDeg = inDegree.get(t.id)! - 1;
+        inDegree.set(t.id, newDeg);
+        if (newDeg === 0) queue.push(t.id);
+      }
+    }
+  }
+
+  if (sorted !== tasks.length) {
+    const stuck = tasks.filter((t) => inDegree.get(t.id)! > 0).map((t) => t.id);
+    console.error(`ERROR: Dependency cycle detected involving: ${stuck.join(", ")}`);
+    console.error("Fix the dependency graph in the manifest before running the loop.");
+    process.exit(1);
   }
 }
 
@@ -458,13 +508,29 @@ If the task cannot be completed, write your completion record and emit <status>F
 
   if (!completedTask.completion.matched_plan) {
     const driftType = completedTask.completion.drift_type;
-    console.log(`\n⚡ Drift detected (type: ${driftType}) — running Drift Response agent...\n`);
 
-    const driftAgentFile = join(AGENTS_DIR, "drift-response.md");
-    const taskEntry = JSON.stringify(completedTask, null, 2);
-    const fullManifest = await Bun.file(MANIFEST_PATH).text();
+    // Local drift means internals differed but the external surface matched.
+    // No downstream tasks are affected — just log it and move on.
+    if (driftType === "local") {
+      console.log(`\n⚡ Drift detected (type: local) — no downstream impact, logging.\n`);
+      const manifest = await readManifest();
+      manifest.drift_log.push({
+        triggered_by: task.id,
+        drift_type: "local",
+        tasks_updated: [],
+        engineer_flagged: false,
+        summary: completedTask.completion.summary,
+      });
+      await writeManifest(manifest);
+    } else {
+      // structural, decision, or additive — spawn the Drift Response agent.
+      console.log(`\n⚡ Drift detected (type: ${driftType}) — running Drift Response agent...\n`);
 
-    const driftPrompt = `The task that just completed: ${task.id}
+      const driftAgentFile = join(AGENTS_DIR, "drift-response.md");
+      const taskEntry = JSON.stringify(completedTask, null, 2);
+      const fullManifest = await Bun.file(MANIFEST_PATH).text();
+
+      const driftPrompt = `The task that just completed: ${task.id}
 
 Completed task manifest entry:
 ${taskEntry}
@@ -480,33 +546,34 @@ If engineer input is required for decision-level drift, output:
 Otherwise output:
 <drift_resolved/>`;
 
-    const driftResult = await runClaude(driftAgentFile, driftPrompt);
-    console.log(driftResult);
+      const driftResult = await runClaude(driftAgentFile, driftPrompt);
+      console.log(driftResult);
 
-    const engineerMatch = driftResult.match(
-      /<engineer_required>([\s\S]*?)<\/engineer_required>/
-    );
+      const engineerMatch = driftResult.match(
+        /<engineer_required>([\s\S]*?)<\/engineer_required>/
+      );
 
-    if (engineerMatch) {
-      printDivider();
-      console.log("  🛑 Engineer input required before execution can continue");
-      console.log();
-      console.log(engineerMatch[1].trim());
-      console.log();
-      console.log("  Resolve the decision, update the Technical Spec if needed,");
-      console.log("  then re-run the loop.");
-      printDivider();
-      process.exit(1);
-    }
+      if (engineerMatch) {
+        printDivider();
+        console.log("  🛑 Engineer input required before execution can continue");
+        console.log();
+        console.log(engineerMatch[1].trim());
+        console.log();
+        console.log("  Resolve the decision, update the Technical Spec if needed,");
+        console.log("  then re-run the loop.");
+        printDivider();
+        process.exit(1);
+      }
 
-    const resolved = /<drift_resolved\s*\/>/.test(driftResult);
-    if (!resolved) {
-      printDivider();
-      console.error("  ✗ Drift Response agent produced no status signal.");
-      console.error("  Expected <drift_resolved/> or <engineer_required>.");
-      console.error("  Halting to avoid advancing with unresolved drift.");
-      printDivider();
-      process.exit(1);
+      const resolved = /<drift_resolved\s*\/>/.test(driftResult);
+      if (!resolved) {
+        printDivider();
+        console.error("  ✗ Drift Response agent produced no status signal.");
+        console.error("  Expected <drift_resolved/> or <engineer_required>.");
+        console.error("  Halting to avoid advancing with unresolved drift.");
+        printDivider();
+        process.exit(1);
+      }
     }
   }
 
