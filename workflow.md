@@ -143,15 +143,18 @@ bun ralph.ts
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
 
 **Each iteration:**
-1. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all resolved
-2. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox (`docker sandbox run claude <project-root>`) with the task file and any prior progress context
-3. Agent implements the task, writes a completion record to the manifest, emits a status signal
-4. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task
-5. On `FAILED` — loop halts, surfaces the reason; resolve it and re-run
-6. On `COMPLETE` — verify declared output files exist on disk
-7. Check for drift; if implementation deviated from the plan, spawn the **Drift Response** agent (`.planning/agents/drift-response.md`) to update affected pending tasks
-8. Commit all changes atomically
-9. Advance to the next task
+1. Check for unverified complete tasks (see Recovery below); if found, re-enter the COMPLETE path for that task
+2. Resume any `in_progress` task first; if none, retry the first `failed` task whose dependencies are all resolved; if none, pick the next `pending` task whose dependencies are all resolved
+3. Spawn the **Task Executor** agent (`.planning/agents/task-executor.md`) in a Docker sandbox (`docker sandbox run claude <project-root>`) with the task file and any prior progress context
+4. Agent implements the task, writes a completion record to the manifest, emits a status signal
+5. On `INCOMPLETE` or no signal — loop continues to next iteration on the same task
+6. On `FAILED` — loop halts, surfaces the reason; resolve it and re-run
+7. On `COMPLETE` — verify declared output files (implementation and test) exist on disk
+8. Check for drift; if implementation deviated from the plan, spawn the **Drift Response** agent (`.planning/agents/drift-response.md`) to update affected pending tasks; if the agent crashes or produces no signal, the loop halts
+9. Mark the task as `loop_verified`, commit all changes atomically
+10. Advance to the next task
+
+**Recovery.** If the process is killed between the executor writing `status: "complete"` to the manifest and the loop finishing verification and commit, the task would be stuck — marked complete but never verified. The loop detects this at the top of each iteration by checking for tasks that are `complete` with a completion record but without `loop_verified` set. It reverts these to `in_progress` so the COMPLETE path (steps 7–9) runs again.
 
 **Drift** is when an implementation deviates from what was planned. The Drift Response agent classifies the deviation, updates any pending tasks that were generated against stale assumptions, and flags the engineer if a locked technical decision was departed from — since that kind of change has implications beyond any individual task file.
 

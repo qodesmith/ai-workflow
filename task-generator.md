@@ -182,29 +182,19 @@ Return a brief confirmation listing each task by ID and title, the dependency or
 Perform every check. Fix failures before confirming completion.
 
 **Coverage checks:**
+
 1. Every scenario ID in the Behavioral Spec appears in at least one task's `scenarios` array.
 2. Every decision in the Technical Spec appears in at least one task's `decisions` array.
 
-**Assumption checks:**
-3. Every task that is referenced in another task's `depends_on` has a non-empty `assumptions` array — if downstream tasks depend on it, it must declare what they depend on.
-4. Every assumption `id` within a task is unique within that task's `assumptions` array.
-5. No assumption captures internal implementation details — only the external surface that other tasks reference.
+**Assumption checks:** 3. Every task that is referenced in another task's `depends_on` has a non-empty `assumptions` array, unless the dependency surface is fully captured by the task's `files` entries (path + description). If downstream tasks depend on something beyond what the file declarations convey, that must be an explicit assumption. 4. Every assumption `id` within a task is unique within that task's `assumptions` array. 5. No assumption captures internal implementation details — only the external surface that other tasks reference.
 
-**Self-containment checks:**
-6. No task's `files`, `scenarios`, `decisions`, or `notes` contains a reference to another task by ID or title — context that requires reading another task file to understand.
-7. Every file listed in `files` has a `description` sufficient for an agent to know what to do with it.
-8. Every task's `codebase_context` lists only documents genuinely relevant to what the task does — not every available document, not a mechanical subset.
+**Self-containment checks:** 6. No task's `files`, `scenarios`, `decisions`, or `notes` contains a reference to another task by ID or title — context that requires reading another task file to understand. 7. Every file listed in `files` has a `description` sufficient for an agent to know what to do with it. 8. Every task's `codebase_context` lists only documents genuinely relevant to what the task does — not every available document, not a mechanical subset.
 
-**Dependency checks:**
-9. The dependency graph is acyclic — no task depends on itself or on a chain that eventually depends back on it.
-10. Every ID listed in a task's `depends_on` exists as a task ID in the manifest.
+**Dependency checks:** 9. The dependency graph is acyclic — no task depends on itself or on a chain that eventually depends back on it. 10. Every ID listed in a task's `depends_on` exists as a task ID in the manifest.
 
-**Schema checks:**
-11. All output files are valid JSON with unique task IDs, conforming to the schemas above.
+**Schema checks:** 11. All output files are valid JSON with unique task IDs, conforming to the schemas above.
 
-**TDD checks:**
-12. Every scenario assigned to a task has a concrete, assertable Then clause — the executing agent must be able to translate it into a failing test without ambiguity. Flag any scenario whose outcome is vague, unmeasurable, or cannot be expressed as an assertion.
-13. No task's `files` array contains test files — tests are derived from scenarios at execution time, not pre-declared. The `test_files` array must be empty at generation time.
+**TDD checks:** 12. Every scenario assigned to a task has a concrete, assertable Then clause — the executing agent must be able to translate it into a failing test without ambiguity. Flag any scenario whose outcome is vague, unmeasurable, or cannot be expressed as an assertion. 13. No task's `files` array contains test files — tests are derived from scenarios at execution time, not pre-declared. The `test_files` array must be empty at generation time.
 
 ---
 

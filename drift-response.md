@@ -105,14 +105,14 @@ Append to the manifest's `drift_log` array:
 ```json
 {
   "triggered_by": "task-id",
-  "drift_type": "structural | decision | additive | local",
+  "drift_type": "structural | decision | additive",
   "tasks_updated": ["task-id"],
   "engineer_flagged": true,
   "summary": "Plain-language description of what changed, what was updated, and why."
 }
 ```
 
-`engineer_flagged` is `true` only for `decision`-type drift that required engineer input. The `drift_type` field may also be `"local"` for entries written directly by the Ralph Loop — this agent does not produce those entries.
+`engineer_flagged` is `true` only for `decision`-type drift that required engineer input. Set `drift_type` to the value from the completion record — it will be one of `structural`, `decision`, or `additive` (the Ralph Loop writes `local` drift log entries directly and never forwards them to this agent).
 
 ### Step 6: Emit your status signal
 

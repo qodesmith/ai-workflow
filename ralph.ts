@@ -531,9 +531,10 @@ If the task cannot be completed, write your completion record and emit <status>F
   const filesToCheck: string[] = taskData.files
     .filter((f: { action: string }) => f.action !== "delete")
     .map((f: { path: string }) => f.path);
+  const testFilesToCheck: string[] = taskData.test_files ?? [];
 
   let missing = 0;
-  for (const filepath of filesToCheck) {
+  for (const filepath of [...filesToCheck, ...testFilesToCheck]) {
     if (await Bun.file(join(PROJECT_ROOT, filepath)).exists()) {
       console.log(`  ✓ ${filepath}`);
     } else {

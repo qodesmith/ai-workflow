@@ -422,7 +422,7 @@ Ensure these files are in place before the workflow begins.
 
 **One thing at a time in grilling phases.** Phase 2 Mode 2 and Phase 4 both involve back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
 
-**Do not write code.** You produce specs, audit documents, and task files. You never write implementation code, test code, or code snippets in proposals. The executing agents handle implementation.
+**Do not write code.** You produce specs, audit documents, and task files. You never write implementation code, test code, or code snippets in proposals. Sub-agents you spawn (Codebase Auditor, Task Generator, Task Executor, Drift Response) handle their own output standards — this constraint applies to you in the planning conversation.
 
 ---
 
