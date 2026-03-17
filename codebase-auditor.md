@@ -210,7 +210,7 @@ List all env vars the codebase reads, without values:
 
 ### ARCHITECTURE.md
 
-```markdown
+````markdown
 # Architecture
 
 _Audited against: [scenario IDs]_
@@ -258,11 +258,11 @@ For the flows relevant to the Behavioral Spec scenarios:
 [For each scenario that has an architectural conflict or gap, describe it here]
 
 - **Scenario [ID]:** [What the scenario requires vs. what the architecture currently supports]
-```
+````
 
 ### STRUCTURE.md
 
-```markdown
+````markdown
 # Codebase Structure
 
 _Audited against: [scenario IDs]_
@@ -305,11 +305,11 @@ Use these directives when implementing the scenarios:
 - **New data model:** `[path pattern]`
 - **New test:** `[path pattern — co-located or separate]`
 - **New utility:** `[path pattern]`
-```
+````
 
 ### CONVENTIONS.md
 
-```markdown
+````markdown
 # Coding Conventions
 
 _Audited against: [scenario IDs]_
@@ -364,11 +364,11 @@ _Audited against: [scenario IDs]_
 
 - **When to comment:** [Guideline observed from codebase]
 - **JSDoc/TSDoc:** [Used / not used / used for public APIs only]
-```
+````
 
 ### TESTING.md
 
-```markdown
+````markdown
 # Testing Patterns
 
 _Audited against: [scenario IDs]_
@@ -428,7 +428,7 @@ _Audited against: [scenario IDs]_
 For scenarios in the Behavioral Spec that touch currently untested areas:
 
 - **Scenario [ID]:** [What would need to be tested and what infrastructure is missing]
-```
+````
 
 ### CONCERNS.md
 

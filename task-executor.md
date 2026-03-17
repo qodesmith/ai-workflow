@@ -143,13 +143,15 @@ Write the `completion` object with `status: "failed"` and emit:
   "failed_reason": "Same explanation as the status signal.",
   "completion": {
     "summary": "What was attempted and why it could not be completed.",
-    "matched_plan": false,
+    "matched_plan": true,
     "drift_type": "none",
     "broken_assumptions": [],
     "notes": null
   }
 }
 ```
+
+> **Note:** Failed tasks use `matched_plan: true` / `drift_type: "none"` because the drift classification describes how the *implementation* deviated from the plan. A failed task has no implementation to compare — it never got far enough to drift. The loop does not run drift handling on failed tasks.
 
 ---
 

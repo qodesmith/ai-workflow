@@ -171,7 +171,7 @@ async function buildProgressContext(
   const missingFiles: string[] = [];
 
   for (const filepath of nonDeleteFiles) {
-    if (await Bun.file(filepath).exists()) {
+    if (await Bun.file(join(PROJECT_ROOT, filepath)).exists()) {
       presentFiles.push(filepath);
     } else {
       missingFiles.push(filepath);
@@ -498,6 +498,35 @@ If the task cannot be completed, write your completion record and emit <status>F
     continue;
   }
 
+  // ── Verify declared files exist ──────────────
+  // This must happen BEFORE setting status to "complete" — if files are
+  // missing the task stays in_progress so the next iteration retries it.
+
+  console.log("\nVerifying output files...");
+
+  const taskData = await Bun.file(taskFile).json();
+  const filesToCheck: string[] = taskData.files
+    .filter((f: { action: string }) => f.action !== "delete")
+    .map((f: { path: string }) => f.path);
+
+  let missing = 0;
+  for (const filepath of filesToCheck) {
+    if (await Bun.file(join(PROJECT_ROOT, filepath)).exists()) {
+      console.log(`  ✓ ${filepath}`);
+    } else {
+      console.log(`  ✗ Missing: ${filepath}`);
+      missing++;
+    }
+  }
+
+  if (missing > 0) {
+    printDivider();
+    console.error(`  ✗ ${missing} declared file(s) not found after task execution.`);
+    console.error("  Task remains in_progress. Next iteration will retry.");
+    printDivider();
+    continue;
+  }
+
   // Defensive: ensure status is "complete" even if the executor only wrote
   // the completion record but failed to update the status field.
   if (completedTask.status !== "complete") {
@@ -577,33 +606,6 @@ Otherwise output:
     }
   }
 
-  // ── Verify declared files exist ──────────────
-
-  console.log("\nVerifying output files...");
-
-  const taskData = await Bun.file(taskFile).json();
-  const filesToCheck: string[] = taskData.files
-    .filter((f: { action: string }) => f.action !== "delete")
-    .map((f: { path: string }) => f.path);
-
-  let missing = 0;
-  for (const filepath of filesToCheck) {
-    if (await Bun.file(filepath).exists()) {
-      console.log(`  ✓ ${filepath}`);
-    } else {
-      console.log(`  ✗ Missing: ${filepath}`);
-      missing++;
-    }
-  }
-
-  if (missing > 0) {
-    printDivider();
-    console.error(`  ✗ ${missing} declared file(s) not found after task execution.`);
-    console.error("  Task remains in_progress. Next iteration will retry.");
-    printDivider();
-    continue;
-  }
-
   // ── Commit ───────────────────────────────────
 
   console.log("\nCommitting...");
@@ -620,7 +622,7 @@ Otherwise output:
 
     const parentDirs = new Set<string>();
     for (const filepath of filesToCheck) {
-      parentDirs.add(join(filepath, ".."));
+      parentDirs.add(join(PROJECT_ROOT, filepath, ".."));
     }
 
     for (const dir of parentDirs) {
