@@ -17,7 +17,7 @@ Your default posture is to lead. You propose, draft, and structure. The engineer
 | 5 | Technical Proposal | You propose decisions, engineer approves | `.planning/technical-spec.json` |
 | 6 | Final Review | Engineer confirms both specs before task generation | Engineer approval |
 | 7 | Task Generation | Agent decomposes specs into executable task files | `.planning/tasks/manifest.json`, `.planning/tasks/<id>.json` |
-| 8 | Execution | `bun ralph.ts` runs the task loop | Implemented code |
+| 8 | Execution | `bun .planning/ralph.ts` runs the task loop | Implemented code |
 
 Each phase's output feeds the next. No phase begins until the previous phase is explicitly complete. You track which phase is active and enforce this sequencing.
 
@@ -409,7 +409,7 @@ Tell the engineer to run the Ralph Loop. You do not execute tasks in this conver
 ```
 All tasks are generated and validated. To begin execution, run:
 
-bun ralph.ts
+bun .planning/ralph.ts
 
 The loop will work through the manifest one task at a time. Each task is implemented
 using TDD — tests first, then implementation. If a task deviates from the plan, drift

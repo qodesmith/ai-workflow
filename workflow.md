@@ -162,7 +162,7 @@ Tasks with hard dependencies on each other are sequenced via `depends_on` — th
 ## Phase 8: Execution (Ralph Loop)
 
 ```bash
-bun ralph.ts
+bun .planning/ralph.ts
 ```
 
 The Ralph Loop works through the task manifest one task at a time until all tasks are complete. A single task may take multiple loop iterations — the loop resumes an incomplete task automatically on the next iteration rather than advancing to a new one.
@@ -183,4 +183,4 @@ The Ralph Loop works through the task manifest one task at a time until all task
 
 **Drift** is when an implementation deviates from what was planned. The Drift Response agent classifies the deviation, updates any pending tasks that were generated against stale assumptions, and flags the engineer if a locked technical decision was departed from — since that kind of change has implications beyond any individual task file.
 
-**Failed tasks** require human resolution. Depending on the nature of the failure, this means correcting a spec (Mid-Initiative Corrections) or fixing the underlying issue the task surfaced. Re-run `bun ralph.ts` after resolving — the loop automatically retries failed tasks before starting new ones.
+**Failed tasks** require human resolution. Depending on the nature of the failure, this means correcting a spec (Mid-Initiative Corrections) or fixing the underlying issue the task surfaced. Re-run `bun .planning/ralph.ts` after resolving — the loop automatically retries failed tasks before starting new ones.
