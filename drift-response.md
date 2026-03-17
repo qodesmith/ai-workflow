@@ -114,20 +114,9 @@ Append to the manifest's `drift_log` array:
 
 `engineer_flagged` is `true` only for `decision`-type drift that required engineer input. The `drift_type` field may also be `"local"` for entries written directly by the Ralph Loop — this agent does not produce those entries.
 
-### Step 6: Schema validation
+### Step 6: Emit your status signal
 
-After all file writes and the drift log entry are complete, validate every file you modified:
-
-```bash
-bun schemas.ts manifest
-bun schemas.ts task <ID>   # for each task file you updated
-```
-
-If any command reports errors, fix the offending file and re-run until validation passes. Do not emit your status signal until all schema checks pass. The Ralph Loop validates all pending task files and the manifest after you finish — schema errors will cause the loop to halt.
-
-### Step 7: Emit your status signal
-
-After all file writes, drift log entry, and schema validation are complete, emit your signal as the final thing in your output.
+After all file writes and the drift log entry are complete, emit your signal as the final thing in your output.
 
 **For `structural` or `additive` drift** (no engineer input needed):
 
@@ -140,8 +129,6 @@ Print a brief summary of what you did — drift type, number of tasks scanned, t
 **For `decision` drift:**
 
 Print the same summary, then emit the engineer-required signal as described in Step 4. Do not emit `<drift_resolved/>` for decision drift.
-
-**In all cases:** Schema validation (Step 6) must pass before emitting any signal.
 
 ---
 

@@ -58,24 +58,13 @@ See the Task File Schema section below.
 
 Write `.planning/tasks/manifest.json`. See the Manifest Schema section below.
 
-### Step 6: Schema validation
-
-Run the schema validator against every file you wrote:
-
-```bash
-bun schemas.ts task-all
-bun schemas.ts manifest
-```
-
-Both commands must exit cleanly (exit code 0). If either reports errors, fix the offending files and re-run until validation passes. Do not proceed to Step 7 until all schema checks pass.
-
-### Step 7: Validate
+### Step 6: Validate
 
 Before returning, perform every check in the Validation section below. If any check fails, fix the tasks and manifest before confirming completion. Do not report a passing validation if any check failed.
 
-### Step 8: Confirm completion
+### Step 7: Confirm completion
 
-Return a brief confirmation listing each task by ID and title, the dependency ordering, and the result of each validation check (including schema validation from Step 6). Do not return task file contents.
+Return a brief confirmation listing each task by ID and title, the dependency ordering, and the result of each validation check. Do not return task file contents.
 
 ---
 

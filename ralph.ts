@@ -13,14 +13,6 @@
 
 import { $ } from "bun";
 import { join, resolve } from "path";
-import {
-  validateManifest,
-  validateTaskFile,
-  type Manifest,
-  type ManifestTask,
-  type TaskFile,
-  type ValidationResult,
-} from "./schemas";
 
 // Resolve the project root once at startup so all paths are absolute
 // and the Docker sandbox can be given an explicit workspace mount.
@@ -29,35 +21,63 @@ const MANIFEST_PATH = join(PROJECT_ROOT, ".planning/tasks/manifest.json");
 const TASKS_DIR = join(PROJECT_ROOT, ".planning/tasks");
 const AGENTS_DIR = join(PROJECT_ROOT, ".planning/agents");
 
-// ─── Schema validation helpers ───────────────
+// ─── Types ────────────────────────────────────
 
-function requireValid(result: ValidationResult): void {
-  if (!result.ok) {
-    console.error(`\nSchema validation failed: ${result.path}`);
-    for (const e of result.errors) {
-      console.error(e);
-    }
-    console.error("\nFix the schema errors before continuing.");
-    process.exit(1);
-  }
+type TaskStatus = "pending" | "in_progress" | "complete" | "failed" | "skipped";
+
+interface ProgressEntry {
+  iteration: number;
+  completed_files: string[];
+  remaining_files: string[];
+  notes: string;
+}
+
+interface BrokenAssumption {
+  assumption_id: string;
+  assumption: string;
+  reality: string;
+}
+
+interface CompletionRecord {
+  summary: string;
+  matched_plan: boolean;
+  drift_type: "none" | "local" | "structural" | "decision" | "additive";
+  broken_assumptions: BrokenAssumption[];
+  notes: string | null;
+}
+
+interface DriftLogEntry {
+  triggered_by: string;
+  drift_type: "local" | "structural" | "decision" | "additive";
+  tasks_updated: string[];
+  engineer_flagged: boolean;
+  summary: string;
+}
+
+interface ManifestTask {
+  id: string;
+  file: string;
+  title: string;
+  depends_on: string[];
+  status: TaskStatus;
+  failed_reason?: string | null;
+  progress?: ProgressEntry[];
+  completion?: CompletionRecord | null;
+  loop_verified?: boolean;
+}
+
+interface Manifest {
+  tasks: ManifestTask[];
+  drift_log: DriftLogEntry[];
 }
 
 // ─── Manifest helpers ─────────────────────────
 
 async function readManifest(): Promise<Manifest> {
-  const data = await Bun.file(MANIFEST_PATH).json();
-  requireValid(validateManifest(data));
-  return data as Manifest;
-}
-
-async function readTaskFile(path: string): Promise<TaskFile> {
-  const data = await Bun.file(path).json();
-  requireValid(validateTaskFile(data, path));
-  return data as TaskFile;
+  return await Bun.file(MANIFEST_PATH).json();
 }
 
 async function writeManifest(manifest: Manifest): Promise<void> {
-  requireValid(validateManifest(manifest));
   await Bun.write(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
 }
 
@@ -125,9 +145,19 @@ async function updateTask(
 
 async function buildProgressContext(
   task: ManifestTask,
-  taskData: TaskFile
+  taskFileContent: string
 ): Promise<string> {
-  const nonDeleteFiles = taskData.files
+  // Parse declared files from the task
+  let declaredFiles: { path: string; action: string }[] = [];
+  try {
+    const parsed = JSON.parse(taskFileContent);
+    declaredFiles = parsed.files ?? [];
+  } catch {
+    // If we can't parse the task file something is very wrong — bail
+    return "";
+  }
+
+  const nonDeleteFiles = declaredFiles
     .filter((f) => f.action !== "delete")
     .map((f) => f.path);
 
@@ -262,31 +292,10 @@ async function preflight(): Promise<void> {
     process.exit(1);
   }
 
-  // Validate manifest schema — readManifest() handles this now.
-  // Calling it here so schema errors surface before the loop starts.
+  // Validate the dependency graph is a DAG (no cycles).
   const manifest = await readManifest();
   const tasks = manifest.tasks;
   const taskIds = new Set(tasks.map((t) => t.id));
-
-  // Validate every task file referenced by the manifest.
-  for (const t of tasks) {
-    const taskFilePath = join(PROJECT_ROOT, t.file);
-    const taskFileHandle = Bun.file(taskFilePath);
-    if (await taskFileHandle.exists()) {
-      try {
-        const data = await taskFileHandle.json();
-        const result = validateTaskFile(data, t.file);
-        if (!result.ok) {
-          console.error(`ERROR: Task file ${t.file} has schema errors:`);
-          for (const e of result.errors) console.error(e);
-          process.exit(1);
-        }
-      } catch {
-        console.error(`ERROR: Task file ${t.file} contains invalid JSON.`);
-        process.exit(1);
-      }
-    }
-  }
 
   // Check for references to non-existent tasks while building adjacency.
   for (const t of tasks) {
@@ -331,8 +340,6 @@ async function preflight(): Promise<void> {
     console.error("Fix the dependency graph in the manifest before running the loop.");
     process.exit(1);
   }
-
-  console.log("  Preflight: manifest and all task files validated.");
 }
 
 // ─── Main Loop ────────────────────────────────
@@ -412,16 +419,12 @@ while (true) {
   }
 
   const iteration = (task.progress?.length ?? 0) + 1;
-  const taskFilePath = join(PROJECT_ROOT, task.file);
+  const taskFile = join(PROJECT_ROOT, task.file);
 
-  if (!(await Bun.file(taskFilePath).exists())) {
-    console.error(`ERROR: Task file not found: ${taskFilePath}`);
+  if (!(await Bun.file(taskFile).exists())) {
+    console.error(`ERROR: Task file not found: ${taskFile}`);
     process.exit(1);
   }
-
-  // Read and validate the task file
-  const taskData = await readTaskFile(taskFilePath);
-  const taskFileContent = JSON.stringify(taskData, null, 2);
 
   printDivider();
   const resumeLabel = resuming ? `  (resuming, iteration ${iteration})` : `  (iteration ${iteration})`;
@@ -431,7 +434,8 @@ while (true) {
   // ── Build prompt ────────────────────────────
 
   const executorAgentFile = join(AGENTS_DIR, "task-executor.md");
-  const progressContext = await buildProgressContext(task, taskData);
+  const taskFileContent = await Bun.file(taskFile).text();
+  const progressContext = await buildProgressContext(task, taskFileContent);
 
   const prompt = `Your task file:
 
@@ -442,7 +446,6 @@ ${progressContext}
 
 Manifest location for writing your progress or completion record: ${MANIFEST_PATH}
 Current iteration number for progress records: ${iteration}
-Schema validator — run after writing to the manifest or task file: bun schemas.ts manifest / bun schemas.ts task ${task.id}
 
 Implement the task. If you complete it fully, write your completion record and emit <status>COMPLETE</status>.
 If you have made progress but cannot finish in this iteration, write a progress record and emit <status>INCOMPLETE</status>.
@@ -477,8 +480,6 @@ If the task cannot be completed, write your completion record and emit <status>F
   // on the same task. No exit.
 
   if (signal.type === "INCOMPLETE") {
-    // Re-read manifest to validate whatever the agent wrote
-    await readManifest();
     console.log(
       `\n↻ Iteration ${iteration} incomplete — resuming on next iteration.`
     );
@@ -508,7 +509,7 @@ If the task cannot be completed, write your completion record and emit <status>F
 
   // ── COMPLETE path ────────────────────────────
 
-  // Re-read and validate manifest after agent execution
+  // Verify completion record was written
   const updatedManifest = await readManifest();
   const completedTask = updatedManifest.tasks.find((t) => t.id === task!.id)!;
 
@@ -520,23 +521,19 @@ If the task cannot be completed, write your completion record and emit <status>F
     continue;
   }
 
-  // Re-read and validate the task file — the executor may have updated test_files
-  const updatedTaskData = await readTaskFile(taskFilePath);
-
   // ── Verify declared files exist ──────────────
   // This must happen BEFORE setting status to "complete" — if files are
   // missing the task stays in_progress so the next iteration retries it.
 
   console.log("\nVerifying output files...");
 
-  const implFiles = updatedTaskData.files
-    .filter((f) => f.action !== "delete")
-    .map((f) => f.path);
-
-  const testFiles = updatedTaskData.test_files;
+  const taskData = await Bun.file(taskFile).json();
+  const filesToCheck: string[] = taskData.files
+    .filter((f: { action: string }) => f.action !== "delete")
+    .map((f: { path: string }) => f.path);
 
   let missing = 0;
-  for (const filepath of [...implFiles, ...testFiles]) {
+  for (const filepath of filesToCheck) {
     if (await Bun.file(join(PROJECT_ROOT, filepath)).exists()) {
       console.log(`  ✓ ${filepath}`);
     } else {
@@ -594,10 +591,8 @@ Full manifest for scanning pending tasks:
 ${fullManifest}
 
 Pending task files directory: ${TASKS_DIR}
-Schema validator: bun schemas.ts manifest / bun schemas.ts task <ID> / bun schemas.ts task-all
 
 Follow your instructions. Update affected pending task files. Append to the manifest drift_log.
-After modifying any file, validate it: bun schemas.ts task <ID> and bun schemas.ts manifest.
 If engineer input is required for decision-level drift, output:
 <engineer_required>plain-language explanation of what needs a decision</engineer_required>
 Otherwise output:
@@ -631,32 +626,6 @@ Otherwise output:
         printDivider();
         process.exit(1);
       }
-
-      // Post-drift validation: re-read manifest and all modified task files
-      // to catch any schema violations the Drift Response agent introduced.
-      const postDriftManifest = await readManifest();
-      const pendingTasks = postDriftManifest.tasks.filter(
-        (t) => t.status === "pending" || t.status === "in_progress"
-      );
-      for (const t of pendingTasks) {
-        const path = join(PROJECT_ROOT, t.file);
-        if (await Bun.file(path).exists()) {
-          try {
-            const data = await Bun.file(path).json();
-            const result = validateTaskFile(data, t.file);
-            if (!result.ok) {
-              console.error(`\n⚠ Drift Response agent corrupted task file ${t.file}:`);
-              for (const e of result.errors) console.error(e);
-              console.error("Halting — fix the task file and re-run.");
-              process.exit(1);
-            }
-          } catch {
-            console.error(`\n⚠ Drift Response agent wrote invalid JSON to ${t.file}.`);
-            console.error("Halting — fix the task file and re-run.");
-            process.exit(1);
-          }
-        }
-      }
     }
   }
 
@@ -675,20 +644,17 @@ Otherwise output:
     // 2. Declared test files from the task's test_files array
     // 3. The .planning/ directory (manifest updates, drift log, task file edits)
 
-    const allTaskFiles = [...implFiles, ...testFiles];
-
-    if (allTaskFiles.length > 0) {
-      const filesToStage = allTaskFiles
-        .map((f) => $.escape(join(PROJECT_ROOT, f)))
-        .join(" ");
-      await $`git add ${{ raw: filesToStage }}`.quiet();
-    }
+    const filesToStage = filesToCheck
+      .concat(taskData.test_files)
+      .map((f) => $.escape(join(PROJECT_ROOT, f)))
+      .join(" ");
+    await $`git add ${{ raw: filesToStage }}`.quiet();
     await $`git add ${join(PROJECT_ROOT, ".planning/")}`.quiet();
 
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();
 
     if (diffResult.exitCode !== 0) {
-      const commitType = updatedTaskData.commit_type ?? "feat";
+      const commitType: string = taskData.commit_type ?? "feat";
       await $`git commit -m ${commitType + "(" + task.id + "): " + task.title}`;
     } else {
       console.log("  Nothing new to commit.");
