@@ -443,6 +443,12 @@ If the task cannot be completed, write your completion record and emit <status>F
     continue;
   }
 
+  // Defensive: ensure status is "complete" even if the executor only wrote
+  // the completion record but failed to update the status field.
+  if (completedTask.status !== "complete") {
+    await updateTask(task.id, (t) => ({ ...t, status: "complete" }));
+  }
+
   // ── Handle drift ────────────────────────────
 
   if (!completedTask.completion.matched_plan) {
