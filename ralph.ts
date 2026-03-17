@@ -493,6 +493,16 @@ Otherwise output:
       printDivider();
       process.exit(1);
     }
+
+    const resolved = /<drift_resolved\s*\/>/.test(driftResult);
+    if (!resolved) {
+      printDivider();
+      console.error("  ✗ Drift Response agent produced no status signal.");
+      console.error("  Expected <drift_resolved/> or <engineer_required>.");
+      console.error("  Halting to avoid advancing with unresolved drift.");
+      printDivider();
+      process.exit(1);
+    }
   }
 
   // ── Verify declared files exist ──────────────
