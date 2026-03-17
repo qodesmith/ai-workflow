@@ -657,10 +657,9 @@ Otherwise output:
     for (const filepath of filesToCheck) {
       parentDirs.add(join(PROJECT_ROOT, filepath, ".."));
     }
-    const testGlobs = [...parentDirs]
-      .flatMap((dir) => [`${$.escape(dir)}/*.test.*`, `${$.escape(dir)}/*.spec.*`])
-      .join(" ");
-    await $`git add ${{ raw: testGlobs }}`.nothrow().quiet();
+    for (const dir of parentDirs) {
+      await $`git add ${dir}/*.test.* ${dir}/*.spec.*`.nothrow().quiet();
+    }
     await $`git add ${join(PROJECT_ROOT, ".planning/")}`.quiet();
 
     const diffResult = await $`git diff --cached --quiet`.nothrow().quiet();
