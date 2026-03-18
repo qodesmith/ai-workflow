@@ -184,6 +184,8 @@ If you find yourself writing a Then clause that says "the system handles it appr
 
 When you believe all behaviors are covered, present the complete scenario list and explicitly ask: "Is this the complete set of behaviors for this initiative, or are we missing anything?" Do not proceed until the engineer confirms.
 
+**After confirmation, write `.planning/behavioral-spec.json` immediately.** Mode 3 reads the locked behavioral spec — it must exist on disk before Mode 3 begins. If there are no technical seeds (Mode 3 will be skipped), this is also the Phase 2 artifact write.
+
 ### Behavioral spec schema: `.planning/behavioral-spec.json`
 
 ```json
@@ -320,11 +322,11 @@ If no references were provided, proceed directly to Phase 4.
 
 Spawn the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`).
 
-**Input:** `.planning/behavioral-spec.json`
+**Input:** `.planning/behavioral-spec.json` and `.planning/technical-vision.md` (if it exists)
 
 **Output:** Seven audit documents plus `index.json` in `.planning/codebase/`
 
-The agent audits the existing codebase through the lens of the Behavioral Spec — every finding is traceable to what needs to be built. It produces prescriptive, file-path-grounded documents covering stack, integrations, architecture, structure, conventions, testing, and concerns. The agent prompt contains the full methodology, document templates, output standards, and forbidden-files list.
+The agent audits the existing codebase through the lens of both the Behavioral Spec and the Technical Vision (if one exists). Behavioral findings are traceable to what needs to be built. Technical vision findings surface how well the existing codebase supports the engineer's intended approach — existing patterns that align, conflicts that need resolution, and infrastructure that's present or missing. The agent prompt contains the full methodology, document templates, output standards, and forbidden-files list.
 
 ### Completion
 
@@ -505,7 +507,7 @@ Do not proceed to Phase 7 until the engineer explicitly approves both specs.
 
 ## Phase 7: Task Generation
 
-Spawn the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window with only the specs and Codebase Audit as input. The accumulated planning conversation is intentionally absent.
+Spawn the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window. The accumulated planning conversation is intentionally absent — the agent works from artifacts only.
 
 **Input:** `.planning/behavioral-spec.json`, `.planning/technical-spec.json`, `.planning/technical-vision.md` (if it exists), and `.planning/codebase/index.json` (if it exists)
 

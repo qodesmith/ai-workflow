@@ -133,7 +133,7 @@ This is intake, not processing. The AI does not read or analyze the references a
 
 Skipped for new projects with no existing code.
 
-For existing projects, the AI spawns the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`). The agent reads `.planning/behavioral-spec.json` first, then audits the codebase through that lens — asking what it needs to understand about the existing code to implement each scenario correctly. It produces eight files — seven focused documents covering stack, integrations, architecture, structure, conventions, testing, and known concerns, plus an `index.json` registry that the Task Generator uses to select which audit documents are relevant to each task.
+For existing projects, the AI spawns the **Codebase Auditor** agent (`.planning/agents/codebase-auditor.md`). The agent reads `.planning/behavioral-spec.json` and `.planning/technical-vision.md` (if it exists), then audits the codebase through both lenses — asking what it needs to understand about the existing code to implement each scenario correctly and how well the codebase supports the engineer's intended technical approach. It produces eight files — seven focused documents covering stack, integrations, architecture, structure, conventions, testing, and known concerns, plus an `index.json` registry that the Task Generator uses to select which audit documents are relevant to each task.
 
 Each audit starts blind — no assumptions carried forward from previous initiative runs. The agent never reads or quotes content from environment files, credentials, secrets, or key files — it notes their existence only.
 
