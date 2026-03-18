@@ -78,8 +78,9 @@ Write the `completion` object to the task's manifest entry and set `status` to `
 <status>COMPLETE</status>
 ```
 
+Write to the task's entry in `.planning/tasks/manifest.json`:
+
 ```json
-// Write to the task's entry in .planning/tasks/manifest.json
 {
   "status": "complete",
   "completion": {

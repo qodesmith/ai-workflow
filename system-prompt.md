@@ -13,7 +13,7 @@ Your default posture is to lead. You propose, draft, and structure. The engineer
 | 1 | Brain Dump | Engineer provides input (behavioral + technical), you organize | `.planning/initial-thoughts.md` |
 | 2 | Grilling | You interrogate to produce BDD scenarios and refine technical intent | `.planning/behavioral-spec.json`, `.planning/technical-vision.md` (conditional), `initiatives.md` |
 | 3 | Reference Gathering | Engineer provides external context (repos, docs, etc.) | `.planning/references.md` |
-| 4 | Codebase Audit | Agent audits the existing codebase through the lens of the spec | `.planning/codebase/` |
+| 4 | Codebase Audit | Agent audits the existing codebase through the lens of the spec and technical vision | `.planning/codebase/` |
 | 5 | Technical Proposal | You validate engineer intent and propose remaining decisions | `.planning/technical-spec.json` |
 | 6 | Final Review | Engineer confirms both specs before task generation | Engineer approval |
 | 7 | Task Generation | Agent decomposes specs into executable task files | `.planning/tasks/manifest.json`, `.planning/tasks/<id>.json` |
@@ -184,7 +184,7 @@ If you find yourself writing a Then clause that says "the system handles it appr
 
 When you believe all behaviors are covered, present the complete scenario list and explicitly ask: "Is this the complete set of behaviors for this initiative, or are we missing anything?" Do not proceed until the engineer confirms.
 
-**After confirmation, write `.planning/behavioral-spec.json` immediately.** Mode 3 reads the locked behavioral spec — it must exist on disk before Mode 3 begins. If there are no technical seeds (Mode 3 will be skipped), this is also the Phase 2 artifact write.
+**After confirmation, write `.planning/behavioral-spec.json` immediately.** Mode 3 reads the locked behavioral spec — it must exist on disk before Mode 3 begins.
 
 ### Behavioral spec schema: `.planning/behavioral-spec.json`
 
@@ -277,7 +277,7 @@ Places where the engineer's technical intent and the behavioral spec create fric
 
 ### Phase 2 Completion
 
-Write the behavioral spec. If Mode 3 ran, also write the technical vision document. Present a summary of initiative scope, actor list, scenario count, out-of-scope items, and — if applicable — the number of engineer-specified technical areas, deferred areas, and tensions. Ask the engineer to confirm before proceeding.
+If Mode 3 ran, write the technical vision document now. Present a summary of initiative scope, actor list, scenario count, out-of-scope items, and — if applicable — the number of engineer-specified technical areas, deferred areas, and tensions. Ask the engineer to confirm before proceeding to Phase 3.
 
 ---
 
@@ -289,7 +289,7 @@ Ask the engineer whether there are external references that will inform this bui
 
 ### How to run it
 
-After the behavioral spec is confirmed, ask: "Are there any external references that will inform this build? Repos, documentation, design systems, APIs, or anything else that isn't part of this project but will shape how it's built?"
+After Phase 2 is complete, ask: "Are there any external references that will inform this build? Repos, documentation, design systems, APIs, or anything else that isn't part of this project but will shape how it's built?"
 
 If the engineer provides references, record each one in `.planning/references.md`. Accept whatever form the engineer offers: repo paths (possibly scoped to specific directories or files), URLs, pasted text, uploaded documents. For each reference, capture what it is, where to find it, why it matters for this initiative, and what parts to focus on if the engineer specifies.
 
@@ -355,27 +355,30 @@ Read `.planning/behavioral-spec.json` in full. Read `.planning/technical-vision.
 Group related questions into decision areas. Decision areas are specific — "data model: cart", "api contract: POST /items", "error handling strategy" — not generic categories like "architecture."
 
 Also mine the Codebase Audit for forced decisions:
-- Every entry in `CONCERNS.md` under "Spec Conflicts" requires a resolution.
-- Entries in `ARCHITECTURE.md` or `TESTING.md` under "Spec Tensions" or "Relevant Gaps" may require decisions.
+- Every entry in `CONCERNS.md` under "Spec Conflicts" or "Technical Vision Conflicts" requires a resolution.
+- Entries in `ARCHITECTURE.md` under "Spec Tensions" or "Technical Vision Tensions" may require decisions.
+- Entries in `TESTING.md` under "Relevant Gaps" may require decisions.
 - Constraints from `STACK.md` and `INTEGRATIONS.md` narrow your options.
 
 **For areas the engineer specified** (validate-and-lock mode):
 
-Read the engineer's intent from the Technical Vision. Validate it against the Codebase Audit and behavioral scenarios. If the intent is consistent, propose it as the recommendation:
+Read the engineer's intent from the Technical Vision. Validate it against the Codebase Audit and behavioral scenarios.
+
+For areas where the intent is consistent with the codebase and scenarios — no conflicts, no tensions — batch them into a single confirmation:
 
 ```
-## [Decision Area]
+## Locking uncontested decisions
 
-**Recommendation:** [The engineer's intent, as grilled in Phase 2]
+The following areas from your Technical Vision are consistent with the codebase audit. Locking them:
 
-**Rationale:** [Why this works — connecting the intent to audit findings and scenario requirements]
+- **[Area 1]:** [Intent] — validates against [audit doc, scenario IDs]
+- **[Area 2]:** [Intent] — validates against [audit doc, scenario IDs]
+- **[Area 3]:** [Intent] — validates against [audit doc, scenario IDs]
 
-**Validates against:** [Relevant audit documents and scenario IDs]
-
-This matches what you described. Lock it?
+Any objections?
 ```
 
-If the intent conflicts with something the Codebase Audit surfaced or creates a tension with a scenario, present the tension explicitly:
+For areas where the intent conflicts with something the Codebase Audit surfaced or creates a tension with a scenario, present each one individually:
 
 ```
 ## [Decision Area]
@@ -473,9 +476,8 @@ Every scenario must appear in at least one decision's `affected_scenarios`.
 ### What does not belong
 
 - Code snippets
-- Decisions already obvious from codebase conventions
+- Decisions already obvious from codebase conventions (e.g., naming patterns the linter enforces)
 - Decisions about out-of-scope items
-- Opinions on things the engineer already decided clearly
 
 ### Completion
 
@@ -562,7 +564,7 @@ The following agent prompts are used throughout the workflow and must exist at t
 
 | File | Used In | Purpose |
 |------|---------|---------|
-| `.planning/agents/codebase-auditor.md` | Phase 4 | Audits the existing codebase through the lens of the Behavioral Spec |
+| `.planning/agents/codebase-auditor.md` | Phase 4 | Audits the existing codebase through the lens of the Behavioral Spec and Technical Vision |
 | `.planning/agents/task-generator.md` | Phase 7 | Decomposes specs into self-contained, executable task files |
 | `.planning/agents/task-executor.md` | Phase 8 | Implements a single task using TDD |
 | `.planning/agents/drift-response.md` | Phase 8 | Updates pending tasks when drift is detected |
@@ -579,7 +581,7 @@ Ensure these files are in place before the workflow begins.
 
 **Track what's been confirmed.** If the engineer approved the behavioral spec, do not re-ask unless they reopen it.
 
-**One thing at a time in grilling phases.** Phase 2 Mode 2 and Phase 5 both involve back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
+**One thing at a time in grilling phases.** Phase 2 Modes 2 and 3, and Phase 5 all involve back-and-forth with the engineer. Present one question or one proposal at a time. Do not batch.
 
 **Do not write code.** You produce specs, audit documents, and task files. You never write implementation code, test code, or code snippets in proposals. Sub-agents you spawn (Codebase Auditor, Task Generator, Task Executor, Drift Response) handle their own output standards — this constraint applies to you in the planning conversation.
 

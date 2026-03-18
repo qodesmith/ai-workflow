@@ -8,7 +8,7 @@ This workflow transforms an idea — however rough — into a precise, machine-e
 
 The workflow runs one initiative at a time. An initiative is whatever you decide to build right now — a new app, a new feature, a major capability. It can be small or large. Phase 2 helps you scope it appropriately.
 
-Each initiative runs through eight phases (two conditional): brain dump, grilling (behavioral and — if the engineer has technical opinions — technical), reference gathering, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
+Each initiative runs through eight phases: brain dump, grilling (behavioral and — if the engineer has technical opinions — technical), reference gathering, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
 
 For larger products, the brain dump will naturally describe more than one initiative's worth of work. Phase 2 handles this by scoping the current initiative and capturing everything else as future initiatives in `initiatives.md`. Each future initiative gets its own full workflow run when its time comes — not pre-specified now.
 
@@ -101,13 +101,13 @@ Second, it surfaces behavioral scenarios that imply technical decisions the engi
 
 The output captures the engineer's grilled technical intent — organized by area, cross-referenced to scenarios, with deferred areas and tensions explicitly noted. This is intent, not locked decisions. Phase 5 turns intent into decisions.
 
-**Output:** `.planning/behavioral-spec.json`, `.planning/technical-vision.md` (if technical seeds exist), and an updated `initiatives.md`.
+**Output:** `initiatives.md` (after Mode 1), `.planning/behavioral-spec.json` (after Mode 2 — written before Mode 3 begins), and `.planning/technical-vision.md` (after Mode 3, if technical seeds exist).
 
 ---
 
 ## Phase 3: Reference Gathering
 
-This phase always runs. After the behavioral spec is confirmed, the AI asks the engineer whether there are external references that will inform this build — codebases the project depends on, API documentation, design systems, platform specs, internal wiki pages, or any other material that isn't part of the project itself but shapes how it should be built.
+This phase always runs. After Phase 2 is complete, the AI asks the engineer whether there are external references that will inform this build — codebases the project depends on, API documentation, design systems, platform specs, internal wiki pages, or any other material that isn't part of the project itself but shapes how it should be built.
 
 The engineer provides whatever they have in whatever form: repo paths (possibly scoped to specific directories), URLs, pasted text, uploaded documents. The AI records each reference in `.planning/references.md` with enough structure that later phases know what each reference is and where to find it:
 
@@ -147,7 +147,7 @@ The AI reads the `.planning/behavioral-spec.json`, `.planning/technical-vision.m
 
 Phase 5 operates in two modes depending on whether the engineer already addressed an area during Phase 2's technical grilling:
 
-For areas the engineer specified in `.planning/technical-vision.md` — the AI validates the engineer's intent against the codebase audit and behavioral scenarios. If the intent is consistent, the AI proposes it as the recommendation with a rationale connecting it to audit findings. If the intent conflicts with something the codebase audit surfaced or creates tension with a scenario, the AI presents the tension explicitly and the engineer resolves it.
+For areas the engineer specified in `.planning/technical-vision.md` — the AI validates the engineer's intent against the codebase audit and behavioral scenarios. Uncontested areas (intent aligns with codebase, no tensions) are batched into a single confirmation rather than presented one at a time. Areas where the intent conflicts with something the codebase audit surfaced or creates tension with a scenario are presented individually so the engineer can resolve each one.
 
 For areas the engineer did not address — or deferred during technical grilling — Phase 5 proposes from scratch as it always has. The AI derives a recommendation, presents it with rationale and alternatives, and the engineer reacts.
 

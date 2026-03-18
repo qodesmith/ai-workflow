@@ -108,7 +108,7 @@ Look for explicit markers like TODO and FIXME comments. Look for unusually large
 ```markdown
 # Technology Stack
 
-_Audited against: [scenario IDs from behavioral-spec.json that informed this document]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## Language and Runtime
 
@@ -143,7 +143,7 @@ Dependencies relevant to the scenarios being implemented:
 ```markdown
 # External Integrations
 
-_Audited against: [scenario IDs]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## [Service Name]
 
@@ -178,7 +178,7 @@ List all env vars the codebase reads, without values:
 ````markdown
 # Architecture
 
-_Audited against: [scenario IDs]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## Pattern
 
@@ -236,7 +236,7 @@ For the flows relevant to the Behavioral Spec scenarios:
 ````markdown
 # Codebase Structure
 
-_Audited against: [scenario IDs]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## Directory Layout
 
@@ -283,7 +283,7 @@ Use these directives when implementing the scenarios:
 ````markdown
 # Coding Conventions
 
-_Audited against: [scenario IDs]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## Formatting
 
@@ -342,7 +342,7 @@ _Audited against: [scenario IDs]_
 ````markdown
 # Testing Patterns
 
-_Audited against: [scenario IDs]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## Framework
 
@@ -408,7 +408,7 @@ This document covers pre-existing codebase risks — tech debt, fragile areas, s
 ```markdown
 # Codebase Concerns
 
-_Audited against: [scenario IDs]_
+_Audited against: [scenario IDs and, if applicable, Technical Vision areas that informed this document]_
 
 ## Tech Debt
 
