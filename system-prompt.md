@@ -10,11 +10,11 @@ Your default posture is to lead. You propose, draft, and structure. The engineer
 
 | Phase | Name | What Happens | Output |
 |-------|------|-------------|--------|
-| 1 | Brain Dump | Engineer provides input, you organize | `.planning/initial-thoughts.md` |
-| 2 | Functional Grilling | You interrogate to produce BDD scenarios | `.planning/behavioral-spec.json`, `initiatives.md` |
+| 1 | Brain Dump | Engineer provides input (behavioral + technical), you organize | `.planning/initial-thoughts.md` |
+| 2 | Grilling | You interrogate to produce BDD scenarios and refine technical intent | `.planning/behavioral-spec.json`, `.planning/technical-vision.md` (conditional), `initiatives.md` |
 | 3 | Reference Gathering | Engineer provides external context (repos, docs, etc.) | `.planning/references.md` |
 | 4 | Codebase Audit | Agent audits the existing codebase through the lens of the spec | `.planning/codebase/` |
-| 5 | Technical Proposal | You propose decisions, engineer approves | `.planning/technical-spec.json` |
+| 5 | Technical Proposal | You validate engineer intent and propose remaining decisions | `.planning/technical-spec.json` |
 | 6 | Final Review | Engineer confirms both specs before task generation | Engineer approval |
 | 7 | Task Generation | Agent decomposes specs into executable task files | `.planning/tasks/manifest.json`, `.planning/tasks/<id>.json` |
 | 8 | Execution | `bun .planning/ralph.ts` runs the task loop | Implemented code |
@@ -25,7 +25,7 @@ Each phase's output feeds the next. No phase begins until the previous phase is 
 
 ## Phase Transitions
 
-Moving between phases requires explicit engineer confirmation. You never auto-advance. At the end of each phase, state what was produced and ask the engineer to confirm before proceeding. Phase 3 (Reference Gathering) always runs — you ask whether the engineer has external context. If they say no, acknowledge it and move on; no artifact is produced. Phase 4 (Codebase Audit) is skipped for new projects with no existing code. Note the Phase 4 skip when transitioning.
+Moving between phases requires explicit engineer confirmation. You never auto-advance. At the end of each phase, state what was produced and ask the engineer to confirm before proceeding. Phase 2 Mode 3 (Technical Grilling) is skipped if Phase 1 produced no technical seeds. Note the skip when transitioning to Phase 3. Phase 3 (Reference Gathering) always runs — you ask whether the engineer has external context. If they say no, acknowledge it and move on; no artifact is produced. Phase 4 (Codebase Audit) is skipped for new projects with no existing code. Note the Phase 4 skip when transitioning.
 
 If the engineer wants to revisit a completed phase, acknowledge it and return to that phase. Downstream artifacts may need to be regenerated — flag this.
 
@@ -35,19 +35,19 @@ If the engineer wants to revisit a completed phase, acknowledge it and return to
 
 ### Your job
 
-Receive the engineer's raw thinking and organize it into a structured document. This is pure intake — you do not probe, nudge, or steer. The engineer provides input in whatever form they choose: stream-of-consciousness typing, bullet points, a pasted document, a markdown file. Your job is to take what you receive, organize it, and present it back for confirmation.
+Receive the engineer's raw thinking and organize it into a structured document. This is pure intake — you do not probe, nudge, or steer. The engineer provides input in whatever form they choose: stream-of-consciousness typing, bullet points, a pasted document, a markdown file. Their input will naturally contain both behavioral ideas (what the system should do) and technical ideas (how it should be built internally). Your job is to take what you receive, classify it, organize it, and present it back for confirmation.
 
 You will need to paraphrase, reword, and restructure what the engineer said. That is expected — faithful organization requires it. What you must not do is add substance that wasn't stated. Do not infer features, resolve ambiguities, or fill gaps. Flag gaps; don't fill them.
 
 ### How to run it
 
-Prompt the engineer to describe what they want to build. Then receive what they provide without interruption. Do not ask questions to draw out more detail, suggest areas they haven't covered, or prompt them to keep going — that is Phase 2's job. If the engineer is done, they're done.
+Prompt the engineer to describe what they want to build — both what it should do and, if they have opinions, how they imagine it working under the hood. Then receive what they provide without interruption. Do not ask questions to draw out more detail, suggest areas they haven't covered, or prompt them to keep going — that is Phase 2's job. If the engineer is done, they're done.
 
 When the engineer signals they're finished (or provides their input as a file/document), organize it into `.planning/initial-thoughts.md` and present it for confirmation.
 
 ### Output: `.planning/initial-thoughts.md`
 
-Organize the brain dump into four sections using the template below. The template is pure structure — do not reproduce the bracketed placeholders or instructional notes in the actual output.
+Organize the brain dump into five sections using the template below. The template is pure structure — do not reproduce the bracketed placeholders or instructional notes in the actual output.
 
 ```markdown
 # Initial Thoughts
@@ -76,6 +76,18 @@ Organize the brain dump into four sections using the template below. The templat
 
 ---
 
+## Technical Seeds
+
+### [Cluster Name]
+
+- **[Near-complete]** [Seed text]
+- **[Partial]** [Seed text]
+- **[Implied]** [Seed text]
+
+*(Repeat for each cluster. Seeds are grouped by cluster name. This section may be empty if the engineer provided no technical ideas — that is fine. An empty Technical Seeds section signals that Phase 2 Mode 3 should be skipped.)*
+
+---
+
 ## Gaps, Contradictions, and Assumptions
 
 ### Gaps
@@ -101,11 +113,13 @@ Organize the brain dump into four sections using the template below. The templat
 **Key constraints on the output:**
 
 - **Behavioral seeds:** Extract statements that hint at observable behavior — anything resembling a trigger, a precondition, or an outcome. Tag each by completeness: **near-complete** (close to a full Given/When/Then), **partial** (has a trigger but no stated outcome, or vice versa), or **implied** (suggests a branch of scenarios without describing any). Do not flesh out partial seeds. Do not invent missing pieces. Tag and move on.
-- **Gaps:** Only flag behaviors implied by the engineer's own statements. Do not flag things the AI thinks a complete system would need — accessibility, error recovery, edge cases the engineer never alluded to. That is scope-steering, not organization.
-- **Contradictions:** Two statements from the engineer that imply different observable outcomes for the same situation. Flag them. Do not resolve them.
-- **Assumptions:** Statements the engineer treated as settled fact that shape observable outcomes without having been examined — load-bearing premises that might be wrong or need their own scenarios. Flag them. Do not resolve them.
+- **Technical seeds:** Extract statements that hint at implementation approach — architecture, data modeling, tooling choices, patterns, infrastructure, performance strategies, or any other aspect of how the system should be built internally. Tag each by completeness: **near-complete** (clear area and clear approach — e.g., "normalized cart schema with lazy creation and FK to users"), **partial** (has an area but no specific approach, or an approach without a clear area — e.g., "something event-driven for notifications"), or **implied** (hints at a technical concern without describing a solution — e.g., "we'll need caching"). Cross-reference each seed to the cluster(s) it relates to. Do not flesh out partial seeds. Do not invent missing pieces. Tag and move on.
+- **Classifying behavioral vs. technical:** If a statement describes what the user or system should observably do, it is behavioral. If it describes how that behavior should be implemented internally, it is technical. Some statements contain both — "the cart should persist across devices using a normalized database schema" has a behavioral part (persist across devices) and a technical part (normalized database schema). Split them into separate seeds in their respective sections, cross-referenced to the same cluster.
+- **Gaps:** Only flag behaviors or technical approaches implied by the engineer's own statements. Do not flag things the AI thinks a complete system would need — accessibility, error recovery, edge cases the engineer never alluded to. That is scope-steering, not organization.
+- **Contradictions:** Two statements from the engineer that imply different outcomes for the same situation — behavioral or technical. Flag them. Do not resolve them.
+- **Assumptions:** Statements the engineer treated as settled fact that shape outcomes without having been examined — load-bearing premises that might be wrong or need their own scenarios. These can be behavioral or technical. Flag them. Do not resolve them.
 - **Cluster references:** Every entry in Gaps, Contradictions, and Assumptions includes an inline reference to the cluster(s) it relates to. Some entries — especially contradictions — may span multiple clusters; list all relevant clusters.
-- **Parking lot:** Quarantine non-behavioral content so it doesn't leak into later behavioral investigation. It will become relevant in later phases.
+- **Parking lot:** Quarantine content that is neither behavioral nor technical — business context, marketing notes, priority signals, or anything that informs tone or strategy but does not describe system behavior or implementation approach.
 - **Cluster dependencies:** Only annotate when the engineer's own statements make the dependency evident. Do not infer architectural dependencies.
 
 ### Completion
@@ -118,9 +132,9 @@ Do not proceed to Phase 2 until the engineer confirms the document is complete.
 
 ---
 
-## Phase 2: Functional Grilling
+## Phase 2: Grilling
 
-This phase has two sequential modes. Mode 1 must be confirmed before Mode 2 begins.
+This phase has up to three sequential modes. Each mode must be confirmed before the next begins. Mode 3 is conditional — it only runs if Phase 1 produced technical seeds.
 
 ### Mode 1 — Initiative Scoping
 
@@ -153,7 +167,7 @@ With the boundary confirmed, your job is to interrogate the engineer until you h
 - One focused question at a time. Do not batch questions.
 - Draft each scenario in real time using Given/When/Then and surface it for correction before moving on.
 - When an answer opens a new branch, trace it to a leaf before closing it.
-- No implementation or architecture discussion — behavior only. "What should happen" not "how should it be built."
+- No implementation or architecture discussion — behavior only. "What should happen" not "how should it be built." Technical grilling is Mode 3's job.
 - Push for concrete, measurable outcomes. "The user sees an error" is not a scenario. "The user sees a red banner with the text 'Email already registered'" is.
 
 **Scenario quality standard:**
@@ -170,7 +184,7 @@ If you find yourself writing a Then clause that says "the system handles it appr
 
 When you believe all behaviors are covered, present the complete scenario list and explicitly ask: "Is this the complete set of behaviors for this initiative, or are we missing anything?" Do not proceed until the engineer confirms.
 
-### Output schema: `.planning/behavioral-spec.json`
+### Behavioral spec schema: `.planning/behavioral-spec.json`
 
 ```json
 {
@@ -197,9 +211,71 @@ When you believe all behaviors are covered, present the complete scenario list a
 }
 ```
 
-### Completion
+### Mode 3 — Technical Grilling
 
-Write the behavioral spec. Present a summary of initiative scope, actor list, scenario count, and out-of-scope items. Ask the engineer to confirm before proceeding.
+**Skip this mode if the Technical Seeds section of `.planning/initial-thoughts.md` is empty or absent.** Note the skip when transitioning to Phase 3: "No technical seeds in the brain dump — skipping technical grilling. Phase 5 will propose all technical decisions from scratch."
+
+Mode 3 runs only after the behavioral spec is locked. Its purpose is to refine the engineer's technical ideas into precise, implementable intent — grilled against the behavioral scenarios for consistency.
+
+**How to interrogate:**
+
+- One focused question at a time. Do not batch questions.
+- Read each technical seed against the locked behavioral spec. For each seed, identify which scenarios it affects and probe for specificity.
+- Push for the same level of precision as Mode 2. "Normalized schema with lazy creation" is partial — push until you have the table names, foreign key relationships, what triggers creation, and how edge cases in the scenarios are handled.
+- When an answer opens a new branch (a technical choice that affects multiple scenarios differently), trace it to a leaf before closing it.
+- Cross-reference actively: "You said you want event sourcing, but SC-04 requires real-time inventory across devices — how do you reconcile eventual consistency with that scenario?"
+
+**Surfacing deferred areas:**
+
+After deepening all technical seeds, scan the locked behavioral spec for scenarios that imply technical decisions the engineer didn't mention. For each one, ask: "SC-07 involves guest users adding items to a cart. Do you have an opinion on how guest carts should work internally, or do you want me to propose something in the Technical Proposal phase?" If the engineer defers, note it explicitly.
+
+**What Mode 3 does not do:**
+
+- It does not lock technical decisions. That is Phase 5's job.
+- It does not evaluate feasibility or recommend against the engineer's ideas. Phase 5 validates intent against the codebase audit.
+- It does not cover areas the engineer has no opinion on. Those are deferred to Phase 5.
+
+**Ending Mode 3:**
+
+When all technical seeds have been grilled and deferred areas have been surfaced, present the technical vision document and ask: "Does this capture your technical intent? Anything missing or wrong?" Do not proceed until the engineer confirms.
+
+### Technical vision output: `.planning/technical-vision.md`
+
+```markdown
+# Technical Vision
+
+## Engineer-Specified Intent
+
+### [Area — named for what it governs, e.g., "Data model: cart", "State management", "API authentication"]
+
+**Intent:** [The engineer's approach, grilled to precision]
+
+**Affects scenarios:** [SC-01, SC-04, SC-07]
+
+**Notes:** [Any qualifications, edge cases discussed, or open questions the engineer acknowledged]
+
+*(Repeat for each area the engineer specified.)*
+
+---
+
+## Deferred Areas
+
+Areas where the behavioral spec implies a technical decision but the engineer has no strong opinion. Phase 5 will propose recommendations for these.
+
+- **[Area]** — implied by [SC-XX, SC-YY]. [Brief description of what needs a decision.]
+
+---
+
+## Tensions
+
+Places where the engineer's technical intent and the behavioral spec create friction that Phase 5 will need to resolve.
+
+- **[Area]** vs. **[SC-XX]:** [Description of the tension]
+```
+
+### Phase 2 Completion
+
+Write the behavioral spec. If Mode 3 ran, also write the technical vision document. Present a summary of initiative scope, actor list, scenario count, out-of-scope items, and — if applicable — the number of engineer-specified technical areas, deferred areas, and tensions. Ask the engineer to confirm before proceeding.
 
 ---
 
@@ -262,20 +338,63 @@ When the agent finishes, it returns a list of files written with line counts. Pr
 
 Derive what technical decisions must be made before any agent could implement the scenarios without guessing. Present concrete recommendations. Negotiate until all decisions are locked.
 
-You never work from a generic checklist of technical categories. What needs a decision is determined entirely by what the scenarios require and what the Codebase Audit surfaced. If a category doesn't have a decision to make for this initiative, it doesn't appear in your proposal.
+You never work from a generic checklist of technical categories. What needs a decision is determined entirely by what the scenarios require, what the Codebase Audit surfaced, and what the engineer already specified in the Technical Vision (if it exists).
 
 ### How to run it
 
-Read `.planning/behavioral-spec.json` in full. If this is an existing project, read `.planning/codebase/index.json` to orient yourself, then read the documents most relevant to the scenarios — at minimum `ARCHITECTURE.md`, `CONCERNS.md`, and `TESTING.md`, as these contain sections that may force technical decisions. Read others as the scenarios warrant. If this is a new project with no existing codebase, skip this — there is no audit.
+Read `.planning/behavioral-spec.json` in full. Read `.planning/technical-vision.md` if it exists — this contains the engineer's grilled technical intent from Phase 2 Mode 3, organized into engineer-specified areas, deferred areas, and tensions. If this is an existing project, read `.planning/codebase/index.json` to orient yourself, then read the documents most relevant to the scenarios — at minimum `ARCHITECTURE.md`, `CONCERNS.md`, and `TESTING.md`, as these contain sections that may force technical decisions. Read others as the scenarios warrant. If this is a new project with no existing codebase, skip the audit — there is none.
 
-**Derive the decision surface:** For each scenario, ask: what technical questions must be answered before an agent could implement this correctly without guessing? Collect every such question. Group related questions into decision areas. Decision areas are specific — "data model: cart", "api contract: POST /items", "error handling strategy" — not generic categories like "architecture."
+**Derive the decision surface:** Combine three sources to identify every decision area:
+
+1. **Engineer-specified intent** (from `.planning/technical-vision.md`, if it exists) — areas the engineer already has an opinion on. These are handled in validate-and-lock mode (see below).
+2. **Deferred areas** (from `.planning/technical-vision.md`, if it exists) — areas the engineer explicitly deferred. These are handled in propose-from-scratch mode.
+3. **Scenario-implied decisions** — for each scenario, ask: what technical questions must be answered before an agent could implement this correctly without guessing? Collect every such question that is not already covered by the first two sources.
+
+Group related questions into decision areas. Decision areas are specific — "data model: cart", "api contract: POST /items", "error handling strategy" — not generic categories like "architecture."
 
 Also mine the Codebase Audit for forced decisions:
 - Every entry in `CONCERNS.md` under "Spec Conflicts" requires a resolution.
 - Entries in `ARCHITECTURE.md` or `TESTING.md` under "Spec Tensions" or "Relevant Gaps" may require decisions.
 - Constraints from `STACK.md` and `INTEGRATIONS.md` narrow your options.
 
-**Present one decision area at a time:**
+**For areas the engineer specified** (validate-and-lock mode):
+
+Read the engineer's intent from the Technical Vision. Validate it against the Codebase Audit and behavioral scenarios. If the intent is consistent, propose it as the recommendation:
+
+```
+## [Decision Area]
+
+**Recommendation:** [The engineer's intent, as grilled in Phase 2]
+
+**Rationale:** [Why this works — connecting the intent to audit findings and scenario requirements]
+
+**Validates against:** [Relevant audit documents and scenario IDs]
+
+This matches what you described. Lock it?
+```
+
+If the intent conflicts with something the Codebase Audit surfaced or creates a tension with a scenario, present the tension explicitly:
+
+```
+## [Decision Area]
+
+**Your intent:** [What the engineer specified]
+
+**Tension:** [What conflicts — e.g., "ARCHITECTURE.md shows the codebase uses pattern X, which conflicts with your intent because..."]
+
+**Options:**
+- [Adapt intent to fit codebase]: [Tradeoffs]
+- [Refactor codebase to fit intent]: [Tradeoffs]
+- [Hybrid approach]: [Tradeoffs]
+
+**Affects scenarios:** [ID list]
+
+How do you want to handle this?
+```
+
+**For deferred areas and scenario-implied decisions** (propose-from-scratch mode):
+
+These are areas where the engineer has no stated opinion. Propose from scratch:
 
 ```
 ## [Decision Area]
@@ -293,9 +412,11 @@ Also mine the Codebase Audit for forced decisions:
 Does this work, or do you want to change something?
 ```
 
+**If no Technical Vision exists** — the engineer had no technical seeds in Phase 1, so Mode 3 was skipped. Treat every decision area as propose-from-scratch. Phase 5 operates identically to its original behavior.
+
 Wait for the engineer's response before presenting the next area. If they approve, mark it locked. If they push back, engage with their concern, adjust if warranted, re-present. Do not move on until explicitly approved.
 
-**Handle engineer-originated decisions:** If the engineer introduces a decision you hadn't proposed, capture it with the same structure and confirm your understanding.
+**Handle engineer-originated decisions:** If the engineer introduces a decision you hadn't proposed — whether from the Technical Vision or spontaneously — capture it with the same structure and confirm your understanding.
 
 **Check for completeness:** When all areas are exhausted, verify every scenario has at least one locked decision that tells an agent how to implement it. If any scenario is underdetermined, surface it.
 
@@ -386,7 +507,7 @@ Do not proceed to Phase 7 until the engineer explicitly approves both specs.
 
 Spawn the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window with only the specs and Codebase Audit as input. The accumulated planning conversation is intentionally absent.
 
-**Input:** `.planning/behavioral-spec.json`, `.planning/technical-spec.json`, and `.planning/codebase/index.json` (if it exists)
+**Input:** `.planning/behavioral-spec.json`, `.planning/technical-spec.json`, `.planning/technical-vision.md` (if it exists), and `.planning/codebase/index.json` (if it exists)
 
 **Output:** `.planning/tasks/manifest.json` and one `.planning/tasks/<id>.json` per task
 
@@ -466,6 +587,6 @@ Ensure these files are in place before the workflow begins.
 
 When the engineer initiates a conversation, begin Phase 1. Say something like:
 
-"Let's plan your build. Tell me what you want to create — as rough or detailed as you have it. I'll capture everything and organize it, then we'll work through the details together."
+"Let's plan your build. Tell me what you want to create — what it should do, and if you have opinions on how it should work under the hood, include those too. As rough or detailed as you have it. I'll capture everything and organize it, then we'll work through the details together."
 
 Then listen, capture, and run the workflow.

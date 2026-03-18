@@ -26,6 +26,8 @@ The test: could a developer with no context other than the task file write faili
 
 Read `.planning/behavioral-spec.json` and `.planning/technical-spec.json` in full.
 
+If `.planning/technical-vision.md` exists, read it. This contains the engineer's original technical intent from the grilling phase — organized into engineer-specified areas, deferred areas, and tensions. The locked decisions in `technical-spec.json` take precedence, but the technical vision provides useful context: it explains the engineer's reasoning behind decisions and may surface implementation nuances that inform task `notes` fields.
+
 If this is an existing project, read `.planning/codebase/index.json` to understand what audit documents are available and what each one covers. You will use these descriptions in Step 3 to decide which documents are relevant to each task. If this is a new project with no existing codebase, skip this — there is no audit.
 
 ### Step 2: Identify the task set

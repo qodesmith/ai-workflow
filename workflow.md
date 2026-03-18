@@ -8,7 +8,7 @@ This workflow transforms an idea — however rough — into a precise, machine-e
 
 The workflow runs one initiative at a time. An initiative is whatever you decide to build right now — a new app, a new feature, a major capability. It can be small or large. Phase 2 helps you scope it appropriately.
 
-Each initiative runs through eight phases (two conditional): brain dump, grilling, reference gathering, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
+Each initiative runs through eight phases (two conditional): brain dump, grilling (behavioral and — if the engineer has technical opinions — technical), reference gathering, codebase audit (skip for greenfield projects), technical proposal, final review, task generation, and execution. The output of each phase feeds the next. At the end, the Ralph Loop executes the generated tasks until the initiative is complete.
 
 For larger products, the brain dump will naturally describe more than one initiative's worth of work. Phase 2 handles this by scoping the current initiative and capturing everything else as future initiatives in `initiatives.md`. Each future initiative gets its own full workflow run when its time comes — not pre-specified now.
 
@@ -24,8 +24,9 @@ For larger products, the brain dump will naturally describe more than one initia
 
 | Artifact | Created by | Purpose |
 |---|---|---|
-| `.planning/initial-thoughts.md` | Phase 1 | Structured brain dump |
+| `.planning/initial-thoughts.md` | Phase 1 | Structured brain dump — behavioral and technical seeds |
 | `.planning/behavioral-spec.json` | Phase 2 | BDD scenarios — source of truth for what to build |
+| `.planning/technical-vision.md` | Phase 2 | Engineer's technical intent, grilled to precision (conditional on technical seeds in Phase 1) |
 | `.planning/references.md` | Phase 3 | External references the engineer provided (optional) |
 | `.planning/codebase/` | Phase 4 | Codebase audit documents (existing projects only) |
 | `.planning/technical-spec.json` | Phase 5 | Locked technical decisions |
@@ -52,14 +53,15 @@ Only regenerate the tasks affected by the change. Completed tasks are not touche
 
 ## Phase 1: Brain Dump
 
-The engineer dumps everything they know about what they want to build — as rough, vague, or incomplete as it actually is. Stream of consciousness, bullet points, a pasted document — whatever form it takes. The AI receives it without interruption, then organizes it into `.planning/initial-thoughts.md`. This is pure intake — the AI paraphrases and restructures for clarity but does not add substance, resolve ambiguities, or fill gaps. Probing for detail is Phase 2's job.
+The engineer dumps everything they know about what they want to build — as rough, vague, or incomplete as it actually is. Stream of consciousness, bullet points, a pasted document — whatever form it takes. This includes both what the system should do and how the engineer imagines it working internally. The AI receives it without interruption, then organizes it into `.planning/initial-thoughts.md`. This is pure intake — the AI paraphrases and restructures for clarity but does not add substance, resolve ambiguities, or fill gaps. Probing for detail is Phase 2's job.
 
-The output is a structured markdown document with four sections:
+The output is a structured markdown document with five sections:
 
 - **Capability Clusters** — the engineer's ideas reorganized around actor-goal pairs, with dependency annotations only when the engineer's own statements make a dependency evident.
 - **Behavioral Seeds** — statements that hint at observable behavior (a trigger, a precondition, an outcome), each tagged by completeness: *near-complete* (close to a full Given/When/Then), *partial* (has a trigger but no outcome, or vice versa), or *implied* (suggests a branch of scenarios without describing any). Seeds are tagged, not fleshed out — missing pieces are not invented.
-- **Gaps, Contradictions, and Assumptions** — gaps are behaviors implied by the engineer's own statements but not described (not things the AI thinks a complete system would need). Contradictions are two statements that imply different outcomes for the same situation. Assumptions are premises the engineer treated as settled that shape outcomes without having been examined. Each entry references the cluster(s) it relates to. All are flagged, none are resolved.
-- **Parking Lot** — non-behavioral content quarantined so it doesn't leak into the behavioral investigation. Becomes relevant in later phases.
+- **Technical Seeds** — statements that hint at implementation approach, architecture, data modeling, tooling choices, patterns, or any other aspect of *how* the system should be built internally. Each tagged by completeness: *near-complete* (clear area and clear approach — e.g., "normalized cart schema with lazy creation and a FK to users"), *partial* (has an area but no specific approach, or an approach without a clear area — e.g., "something event-driven for notifications"), or *implied* (hints at a technical concern without describing a solution — e.g., "we'll need caching"). Seeds are tagged, not fleshed out — missing pieces are not invented. Each seed is cross-referenced to the capability cluster(s) it relates to.
+- **Gaps, Contradictions, and Assumptions** — gaps are behaviors or technical approaches implied by the engineer's own statements but not described (not things the AI thinks a complete system would need). Contradictions are two statements that imply different outcomes for the same situation — behavioral or technical. Assumptions are premises the engineer treated as settled that shape outcomes without having been examined. Each entry references the cluster(s) it relates to. All are flagged, none are resolved.
+- **Parking Lot** — content that is neither behavioral nor technical — business context, marketing notes, priority signals, or anything that informs tone or strategy but does not describe system behavior or implementation approach. Becomes relevant in later phases.
 
 The engineer confirms the document before proceeding. If they add new material during confirmation, it is integrated into the existing structure — not appended to the end — and the document is re-presented.
 
@@ -67,9 +69,9 @@ The engineer confirms the document before proceeding. If they add new material d
 
 ---
 
-## Phase 2: Functional Grilling
+## Phase 2: Grilling
 
-This phase runs in two sequential modes. Mode 1 must be confirmed before Mode 2 begins.
+This phase runs in up to three sequential modes. Each mode must be confirmed before the next begins. Mode 3 is conditional — it only runs if Phase 1 produced technical seeds.
 
 **Mode 1 — Initiative Scoping**
 
@@ -83,11 +85,23 @@ With the boundary confirmed, the AI interrogates the engineer to produce complet
 
 Every scenario must be concrete enough that a stateless agent could translate it into a failing test with no other context. Given describes a concrete, reproducible precondition. When describes a single, triggerable action. Then describes an observable, assertable outcome. "The user sees an error" is not a scenario — "The user sees a red banner with the text 'Email already registered'" is. Expect the AI to push for this level of specificity.
 
-The interrogation is dynamic — answers surface new branches, which the AI traces to a leaf before closing. One focused question at a time. No implementation or architecture discussion.
+The interrogation is dynamic — answers surface new branches, which the AI traces to a leaf before closing. One focused question at a time. No implementation or architecture discussion — that is Mode 3's job.
 
-The phase ends when the engineer explicitly confirms the scenario list is complete and accurate.
+The behavioral spec must be locked before Mode 3 begins.
 
-**Output:** `.planning/behavioral-spec.json` and an updated `initiatives.md`.
+**Mode 3 — Technical Grilling**
+
+This mode only runs if Phase 1 produced technical seeds. If the Technical Seeds section of `.planning/initial-thoughts.md` is empty or absent, Mode 3 is skipped entirely — the engineer has no technical opinions to grill on, and Phase 5 handles all technical decisions from scratch.
+
+When Mode 3 runs, the AI reads the technical seeds against the now-locked behavioral spec and grills in two directions:
+
+First, it deepens what the engineer already stated. Each technical seed is examined against the scenarios it affects. The AI pushes for the same level of specificity as Mode 2: vague approaches are refined into concrete, implementable descriptions. "Normalized schema with lazy creation" becomes "carts table with FK to users, cart_items table with FKs to carts and products, no cart row created until the first item is added, guest carts use a session token instead of a user FK."
+
+Second, it surfaces behavioral scenarios that imply technical decisions the engineer didn't mention. Not to force an answer — but to ask whether the engineer has an opinion or wants Phase 5 to propose something. If the engineer defers, the area is noted as deferred and Phase 5 handles it.
+
+The output captures the engineer's grilled technical intent — organized by area, cross-referenced to scenarios, with deferred areas and tensions explicitly noted. This is intent, not locked decisions. Phase 5 turns intent into decisions.
+
+**Output:** `.planning/behavioral-spec.json`, `.planning/technical-vision.md` (if technical seeds exist), and an updated `initiatives.md`.
 
 ---
 
@@ -129,9 +143,17 @@ Each audit starts blind — no assumptions carried forward from previous initiat
 
 ## Phase 5: Technical Proposal
 
-The AI reads the `.planning/behavioral-spec.json`, Codebase Audit (if it exists), and `.planning/references.md` (if it exists), derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
+The AI reads the `.planning/behavioral-spec.json`, `.planning/technical-vision.md` (if it exists), Codebase Audit (if it exists), and `.planning/references.md` (if it exists), derives what decisions need to be made before any agent could implement the scenarios without guessing, and presents concrete recommendations to the engineer one decision area at a time.
 
-The engineer reacts — approving, pushing back, or refining. The AI adjusts. This continues until all decisions are explicitly approved. The engineer never has to originate a technical decision from scratch — only react to proposals.
+Phase 5 operates in two modes depending on whether the engineer already addressed an area during Phase 2's technical grilling:
+
+For areas the engineer specified in `.planning/technical-vision.md` — the AI validates the engineer's intent against the codebase audit and behavioral scenarios. If the intent is consistent, the AI proposes it as the recommendation with a rationale connecting it to audit findings. If the intent conflicts with something the codebase audit surfaced or creates tension with a scenario, the AI presents the tension explicitly and the engineer resolves it.
+
+For areas the engineer did not address — or deferred during technical grilling — Phase 5 proposes from scratch as it always has. The AI derives a recommendation, presents it with rationale and alternatives, and the engineer reacts.
+
+If no `.planning/technical-vision.md` exists (the engineer had no technical seeds), Phase 5 proposes every decision from scratch — identical to its original behavior.
+
+This continues until all decisions are explicitly approved.
 
 **Output:** `.planning/technical-spec.json`
 
@@ -149,7 +171,7 @@ No tasks are generated until the engineer explicitly approves both specs.
 
 ## Phase 7: Task Generation
 
-The AI spawns the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window with only the specs and Codebase Audit as input. The accumulated planning conversation is intentionally absent.
+The AI spawns the **Task Generator** agent (`.planning/agents/task-generator.md`) in a fresh context window with only the specs, Technical Vision (if it exists), and Codebase Audit as input. The accumulated planning conversation is intentionally absent.
 
 Each task the agent produces is a vertical slice — fully functional across every layer it touches, independently executable by a stateless agent with no knowledge of other tasks. Execution follows TDD: the executing agent writes tests first from the task's scenarios, confirms they fail, then implements the code to make them pass. Each task embeds everything unique to it directly: the relevant scenarios, the governing technical decisions, the implementation files to create or modify, and the pivotable assumptions that downstream tasks depend on. Shared codebase reference material is referenced by path — the executing agent reads audit documents directly from `.planning/codebase/` rather than receiving their content inline. Test files are not pre-declared — they are derived from scenarios at execution time.
 
