@@ -233,19 +233,36 @@ function parseStatusSignal(output: string): StatusSignal {
 // ─── Claude invocation ────────────────────────
 
 async function runClaude(agentFile: string, prompt: string): Promise<string> {
-  try {
-    // Mount the project root explicitly so the agent has read-write access
-    // to .planning/ regardless of what directory invoked `bun ralph.ts`.
-    const result =
-      await $`docker sandbox run claude ${PROJECT_ROOT} -- --dangerously-skip-permissions --append-system-prompt-file ${agentFile} -p ${prompt}`.text();
-    return result;
-  } catch (err) {
-    // Non-zero exit — return whatever output was produced
-    if (err instanceof Error && "stdout" in err) {
-      return String((err as { stdout: unknown }).stdout ?? "");
+  const proc = Bun.spawn(
+    [
+      "docker", "sandbox", "run", "claude", PROJECT_ROOT, "--",
+      "--dangerously-skip-permissions",
+      "--append-system-prompt-file", agentFile,
+      "-p", prompt,
+    ],
+    { stdout: "pipe", stderr: "pipe" }
+  );
+
+  // Stream both stdout and stderr in real-time while capturing everything
+  // into a single string for signal parsing.
+  let output = "";
+  const decoder = new TextDecoder();
+
+  async function drain(stream: ReadableStream<Uint8Array>, dest: NodeJS.WriteStream) {
+    for await (const chunk of stream) {
+      const text = decoder.decode(chunk);
+      output += text;
+      dest.write(text);
     }
-    return "";
   }
+
+  await Promise.all([
+    drain(proc.stdout, process.stdout),
+    drain(proc.stderr, process.stderr),
+  ]);
+
+  await proc.exited;
+  return output;
 }
 
 // ─── Display helpers ──────────────────────────
@@ -254,6 +271,29 @@ const DIVIDER = "\n" + "━".repeat(50);
 
 function printDivider() {
   console.log(DIVIDER);
+}
+
+function printManifestSummary(manifest: Manifest): void {
+  const counts = { pending: 0, in_progress: 0, complete: 0, failed: 0, skipped: 0 };
+  for (const t of manifest.tasks) counts[t.status]++;
+  const total = manifest.tasks.length;
+  const done = counts.complete + counts.skipped;
+  const parts: string[] = [];
+  if (counts.complete > 0) parts.push(`${counts.complete} complete`);
+  if (counts.skipped > 0) parts.push(`${counts.skipped} skipped`);
+  if (counts.in_progress > 0) parts.push(`${counts.in_progress} in progress`);
+  if (counts.failed > 0) parts.push(`${counts.failed} failed`);
+  if (counts.pending > 0) parts.push(`${counts.pending} pending`);
+  console.log(`  Progress: ${done}/${total} done (${parts.join(", ")})`);
+}
+
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const secs = ms / 1000;
+  if (secs < 60) return `${secs.toFixed(1)}s`;
+  const mins = Math.floor(secs / 60);
+  const remainSecs = Math.round(secs % 60);
+  return `${mins}m ${remainSecs}s`;
 }
 
 // ─── Preflight ────────────────────────────────
@@ -346,12 +386,24 @@ async function preflight(): Promise<void> {
 
 await preflight();
 
+const loopStartTime = new Date();
+
 printDivider();
 console.log("  Ralph Loop started");
+console.log(`  Started at: ${loopStartTime.toLocaleString()}`);
 console.log(`  Manifest: ${MANIFEST_PATH}`);
+{
+  const initial = await readManifest();
+  printManifestSummary(initial);
+}
 printDivider();
 
+let loopIterationCount = 0;
+
 while (true) {
+  loopIterationCount++;
+  console.log(`\n🔄 Loop iteration ${loopIterationCount}`);
+
   // ── Check for unverified complete tasks ─────
   // If the agent wrote status: "complete" but the loop never ran file
   // verification or drift handling (e.g., the agent crashed after writing
@@ -399,8 +451,11 @@ while (true) {
 
       if (!task) {
         if (allComplete(manifest)) {
+          const loopEndTime = new Date();
           printDivider();
           console.log("  ✓ All tasks complete.");
+          console.log(`  Finished at: ${loopEndTime.toLocaleString()}`);
+          console.log(`  Total elapsed: ${formatElapsed(loopEndTime.getTime() - loopStartTime.getTime())}`);
           printDivider();
           process.exit(0);
         } else {
@@ -418,7 +473,7 @@ while (true) {
     }
   }
 
-  const iteration = (task.progress?.length ?? 0) + 1;
+  const taskAttemptCountCount = (task.progress?.length ?? 0) + 1;
   const taskFile = join(PROJECT_ROOT, task.file);
 
   if (!(await Bun.file(taskFile).exists())) {
@@ -427,8 +482,9 @@ while (true) {
   }
 
   printDivider();
-  const resumeLabel = resuming ? `  (resuming, iteration ${iteration})` : `  (iteration ${iteration})`;
+  const resumeLabel = resuming ? `  (resuming, attempt ${taskAttemptCount})` : `  (attempt ${taskAttemptCount})`;
   console.log(`  Task: ${task.id} — ${task.title}${resumeLabel}`);
+  printManifestSummary(manifest);
   printDivider();
 
   // ── Build prompt ────────────────────────────
@@ -445,7 +501,7 @@ ${progressContext}
 ---
 
 Manifest location for writing your progress or completion record: ${MANIFEST_PATH}
-Current iteration number for progress records: ${iteration}
+Current iteration number for progress records: ${taskAttemptCount}
 
 Implement the task. If you complete it fully, write your completion record and emit <status>COMPLETE</status>.
 If you have made progress but cannot finish in this iteration, write a progress record and emit <status>INCOMPLETE</status>.
@@ -453,9 +509,11 @@ If the task cannot be completed, write your completion record and emit <status>F
 
   // ── Execute ─────────────────────────────────
 
-  console.log("\n▶ Executing...\n");
+  console.log("\n▶ Executing task...\n");
+  const execStart = performance.now();
   const execResult = await runClaude(executorAgentFile, prompt);
-  console.log(execResult);
+  const execElapsed = performance.now() - execStart;
+  console.log(`\n⏱  Task executor finished in ${formatElapsed(execElapsed)}`);
 
   // ── Parse status signal ─────────────────────
 
@@ -481,7 +539,7 @@ If the task cannot be completed, write your completion record and emit <status>F
 
   if (signal.type === "INCOMPLETE") {
     console.log(
-      `\n↻ Iteration ${iteration} incomplete — resuming on next iteration.`
+      `\n↻ Attempt ${taskAttemptCount} incomplete — resuming on next iteration.`
     );
     // Task remains in_progress. Continue the while loop.
     continue;
@@ -509,6 +567,8 @@ If the task cannot be completed, write your completion record and emit <status>F
 
   // ── COMPLETE path ────────────────────────────
 
+  console.log("\n── Post-execution: verifying completion ──");
+
   // Verify completion record was written
   const updatedManifest = await readManifest();
   const completedTask = updatedManifest.tasks.find((t) => t.id === task!.id)!;
@@ -525,7 +585,7 @@ If the task cannot be completed, write your completion record and emit <status>F
   // This must happen BEFORE setting status to "complete" — if files are
   // missing the task stays in_progress so the next iteration retries it.
 
-  console.log("\nVerifying output files...");
+  console.log("\n── Post-execution: verifying output files ──");
 
   const taskData = await Bun.file(taskFile).json();
   const filesToCheck: string[] = taskData.files
@@ -599,8 +659,10 @@ If engineer input is required for decision-level drift, output:
 Otherwise output:
 <drift_resolved/>`;
 
+      const driftStart = performance.now();
       const driftResult = await runClaude(driftAgentFile, driftPrompt);
-      console.log(driftResult);
+      const driftElapsed = performance.now() - driftStart;
+      console.log(`\n⏱  Drift response agent finished in ${formatElapsed(driftElapsed)}`);
 
       const engineerMatch = driftResult.match(
         /<engineer_required>([\s\S]*?)<\/engineer_required>/
@@ -637,7 +699,7 @@ Otherwise output:
 
   // ── Commit ───────────────────────────────────
 
-  console.log("\nCommitting...");
+  console.log("\n── Post-execution: committing ──");
 
   try {
     // Stage only the files this task is responsible for:
@@ -670,5 +732,5 @@ Otherwise output:
 
   // ── Done ─────────────────────────────────────
 
-  console.log(`\n✓ ${task.id} complete after ${iteration} iteration(s).`);
+  console.log(`\n✓ ${task.id} complete after ${taskAttemptCount} attempt(s).`);
 }
