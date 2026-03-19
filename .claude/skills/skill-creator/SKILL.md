@@ -190,13 +190,13 @@ Execute this task (use isolation: "worktree"):
 - Input files: <eval files if any, or "none">
 - Save outputs to: <eval-worktree>/<workspace>/iteration-<N>/eval-<ID>/with_skill/outputs/
 - Outputs to save: <what the user cares about — e.g., "the .docx file", "the final CSV">
-- IMPORTANT: After the agent completes, copy the relevant output files from the subagent's worktree into the eval worktree's workspace outputs directory.
+- IMPORTANT: After the agent completes, copy the relevant output files from the subagent's worktree into the eval worktree's workspace outputs directory, then remove the subagent's worktree (`git worktree remove <path> --force`) so it doesn't linger.
 ```
 
 **Baseline run** (same prompt, but the baseline depends on context):
 - **Creating a new skill**: no skill at all. Same prompt, no skill path, save to `without_skill/outputs/`.
 - **Improving an existing skill**: the old version. Before editing, snapshot the skill (`cp -r <skill-path> <workspace>/skill-snapshot/`), then point the baseline subagent at the snapshot. Save to `old_skill/outputs/`.
-- **Always use `isolation: "worktree"` for baseline runs too.**
+- **Always use `isolation: "worktree"` for baseline runs too.** After copying outputs, remove the subagent's worktree just like the with-skill runs.
 
 Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing — not just "eval-0". Use this name for the directory too. If this iteration uses new or modified eval prompts, create these files for each new eval directory — don't assume they carry over from previous iterations.
 
@@ -305,6 +305,13 @@ kill $VIEWER_PID 2>/dev/null
 When the user is done reviewing results and you no longer need the eval worktree, clean it up:
 
 ```bash
+# First, remove any leftover subagent worktrees (isolation: "worktree" creates these
+# under .claude/worktrees/agent-* and they persist if the agent made changes)
+git worktree list --porcelain | grep -oP '(?<=worktree ).*.claude/worktrees/agent-[^/]+' | while read wt; do
+  git worktree remove "$wt" --force 2>/dev/null
+done
+
+# Then remove the eval worktree itself
 git worktree remove "$EVAL_WORKTREE" --force
 ```
 
