@@ -85,10 +85,6 @@
     ".planning/codebase/ARCHITECTURE.md"
   ],
   "commit_type": "feat",
-  "test_files": [
-    "src/__tests__/api/bookmarks.test.ts",
-    "src/__tests__/components/BookmarkForm.test.tsx",
-    "src/__tests__/components/BookmarkList.test.tsx"
-  ],
+  "test_files": [],
   "notes": null
 }
