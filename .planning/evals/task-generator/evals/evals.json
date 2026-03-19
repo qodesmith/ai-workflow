@@ -40,7 +40,7 @@
         "No single task contains all 5 scenarios — work is split across multiple tasks",
         "No task's files array has more than 10 entries",
         "Every task's files array includes files across multiple layers (not just a single migration or a single component)",
-        "The generator's own validation checklist (13 checks) all pass — the confirmation output lists each check as passing"
+        "No task has a files array consisting of only one layer (e.g., only database migrations or only React components) — each task spans at least two layers"
       ]
     }
   ]

@@ -57,7 +57,7 @@ Then ask it to run evals for a specific agent:
 3. Task sizing — verifies vertical slices, no oversized or undersized tasks
 
 ### Task Executor (3 evals)
-1. TDD discipline — tests written before implementation, confirmed failing, completion record ordering
+1. TDD discipline — tests written before implementation, completion record with all required fields, all declared files created
 2. Drift reporting — accurate classification of structural drift with broken assumptions
 3. Resumption — handles iteration 2 correctly, doesn't rewrite existing files
 

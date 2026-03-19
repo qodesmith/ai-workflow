@@ -1,4 +1,5 @@
-evals-workspace
-tasks
-codebase
-.claude/worktrees
+# Eval run artifacts (grading, benchmarks, viewer HTML)
+.planning/evals/evals-workspace/
+
+# Worktree copies used by eval agents
+.claude/worktrees/
