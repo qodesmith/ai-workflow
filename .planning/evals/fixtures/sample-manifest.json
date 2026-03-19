@@ -43,5 +43,13 @@
       "status": "pending"
     }
   ],
-  "drift_log": []
+  "drift_log": [
+    {
+      "triggered_by": "T01",
+      "drift_type": "structural",
+      "tasks_updated": ["T02", "T03", "T04"],
+      "engineer_flagged": false,
+      "summary": "T01 completed with structural drift: the ORM (Drizzle) returns snake_case column names by default, so the API response uses folder_id and created_at instead of the planned folderId and createdAt. Scanned pending tasks T02, T03, T04. All three reference the affected field names. Updated file descriptions in T04 to use folder_id instead of folderId where they reference API response fields. Added drift-response notes to all three tasks documenting the snake_case convention. Decisions sections (which also reference folderId) were not modified per agent rules — notes alert implementing agents to the discrepancy."
+    }
+  ]
 }
