@@ -164,13 +164,22 @@ See `references/schemas.md` for the full schema (including the `assertions` fiel
 
 This section is one continuous sequence — don't stop partway through. Do NOT use `/skill-test` or any other testing skill.
 
-Put results in `<skill-name>-workspace/` as a sibling to the skill directory. Within the workspace, organize results by iteration (`iteration-1/`, `iteration-2/`, etc.) and within that, each test case gets a directory (`eval-0/`, `eval-1/`, etc.). Don't create all of this upfront — just create directories as you go.
+**IMPORTANT: Isolate the entire eval run in a git worktree.** Before spawning any eval subagents, create a dedicated worktree for the eval run:
+
+```bash
+EVAL_WORKTREE=".claude/worktrees/eval-$(date +%s)"
+git worktree add "$EVAL_WORKTREE" HEAD
+```
+
+This gives you a full copy of the repo in an isolated directory. ALL eval operations — subagent execution, workspace output, grading, benchmarks — happen within this worktree. The main project directory stays completely untouched throughout the eval run. This is especially important for projects where the skill itself lives in the repo (e.g., `.planning/` folders) — without worktree isolation, eval artifacts would pollute the very code being tested.
+
+Put results in `<skill-name>-workspace/` as a sibling to the skill directory **within the eval worktree** (e.g., `$EVAL_WORKTREE/.planning/evals/<skill-name>-workspace/`). Within the workspace, organize results by iteration (`iteration-1/`, `iteration-2/`, etc.) and within that, each test case gets a directory (`eval-0/`, `eval-1/`, etc.). Don't create all of this upfront — just create directories as you go. Tell the user the full worktree path so they can access results.
 
 ### Step 1: Spawn all runs (with-skill AND baseline) in the same turn
 
 For each test case, spawn two subagents in the same turn — one with the skill, one without. This is important: don't spawn the with-skill runs first and then come back for baselines later. Launch everything at once so it all finishes around the same time.
 
-**IMPORTANT: Use worktree isolation for all eval runs.** Spawn each subagent with `isolation: "worktree"` so it gets its own copy of the repo. This prevents eval runs from polluting the main project directory with artifacts like `node_modules/`, `src/`, `package.json`, build outputs, etc. The worktree is automatically cleaned up if the agent makes no file changes. After a worktree agent completes, copy only the desired output files (from the worktree path returned in the result) into the workspace output directory.
+**Use worktree isolation for eval subagents.** Spawn each subagent with `isolation: "worktree"` so concurrent subagents don't conflict with each other. After a worktree subagent completes, copy only the desired output files (from the worktree path returned in the result) into the **eval worktree's** workspace output directory — never the main project directory.
 
 **With-skill run:**
 
@@ -179,9 +188,9 @@ Execute this task (use isolation: "worktree"):
 - Skill path: <path-to-skill>
 - Task: <eval prompt>
 - Input files: <eval files if any, or "none">
-- Save outputs to: <workspace>/iteration-<N>/eval-<ID>/with_skill/outputs/
+- Save outputs to: <eval-worktree>/<workspace>/iteration-<N>/eval-<ID>/with_skill/outputs/
 - Outputs to save: <what the user cares about — e.g., "the .docx file", "the final CSV">
-- IMPORTANT: After the agent completes, copy the relevant output files from the worktree into the workspace outputs directory, then the worktree will be cleaned up automatically.
+- IMPORTANT: After the agent completes, copy the relevant output files from the subagent's worktree into the eval worktree's workspace outputs directory.
 ```
 
 **Baseline run** (same prompt, but the baseline depends on context):
@@ -290,6 +299,16 @@ Kill the viewer server when you're done with it:
 ```bash
 kill $VIEWER_PID 2>/dev/null
 ```
+
+### Eval worktree cleanup
+
+When the user is done reviewing results and you no longer need the eval worktree, clean it up:
+
+```bash
+git worktree remove "$EVAL_WORKTREE" --force
+```
+
+If the user wants to keep the results, tell them the worktree path and let them copy what they need before cleanup. For multi-iteration runs, keep the eval worktree alive across iterations — only clean up when the entire eval session is done.
 
 ---
 
@@ -450,7 +469,7 @@ In Claude.ai, the core workflow is the same (draft → test → review → impro
 
 If you're in Cowork, the main things to know are:
 
-- You have subagents, so the main workflow (spawn test cases in parallel, run baselines, grade, etc.) all works. (However, if you run into severe problems with timeouts, it's OK to run the test prompts in series rather than parallel.) Always use `isolation: "worktree"` when spawning eval subagents to prevent artifacts from polluting the main project directory.
+- You have subagents, so the main workflow (spawn test cases in parallel, run baselines, grade, etc.) all works. (However, if you run into severe problems with timeouts, it's OK to run the test prompts in series rather than parallel.) Always create an eval worktree first (`git worktree add`), then use `isolation: "worktree"` for individual subagents. All workspace output (grading, benchmarks, viewer) goes into the eval worktree — never the main project directory.
 - You don't have a browser or display, so when generating the eval viewer, use `--static <output_path>` to write a standalone HTML file instead of starting a server. Then proffer a link that the user can click to open the HTML in their browser.
 - For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after running tests, you should always generate the eval viewer for the human to look at examples before revising the skill yourself and trying to make corrections, using `generate_review.py` (not writing your own boutique html code). Sorry in advance but I'm gonna go all caps here: GENERATE THE EVAL VIEWER *BEFORE* evaluating inputs yourself. You want to get them in front of the human ASAP!
 - Feedback works differently: since there's no running server, the viewer's "Submit All Reviews" button will download `feedback.json` as a file. You can then read it from there (you may have to request access first).
