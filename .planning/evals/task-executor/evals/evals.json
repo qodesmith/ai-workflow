@@ -1,0 +1,46 @@
+{
+  "skill_name": "task-executor-eval",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You are the Task Executor. Read the agent prompt at `.planning/agents/task-executor.md`. Your task file content is in `.planning/evals/fixtures/sample-task.json`. The manifest is at `.planning/evals/fixtures/sample-manifest.json`. This is iteration 1 (first attempt). Implement the task following TDD. The project uses Next.js with Drizzle ORM.",
+      "expected_output": "Test files written BEFORE implementation files. Tests confirmed failing before implementation begins. Implementation makes tests pass. Completion record written to manifest. Status signal emitted AFTER the record.",
+      "files": [],
+      "expectations": [
+        "Test files are written before any implementation code — the transcript shows test creation preceding implementation",
+        "Tests are run and confirmed failing BEFORE implementation begins",
+        "The test failures are clean — failing because behavior doesn't exist, not because of syntax errors or missing imports",
+        "The task file's test_files array is updated with the paths of created test files",
+        "A completion record is written to the manifest entry for T01",
+        "The <status>COMPLETE</status> signal appears AFTER the completion record is written to the manifest",
+        "The completion record includes summary, matched_plan, drift_type, and broken_assumptions fields",
+        "All declared files from the task's files array are created on disk"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "You are the Task Executor. Read the agent prompt at `.planning/agents/task-executor.md`. Your task file content is in `.planning/evals/fixtures/sample-task.json`. The manifest is at `.planning/evals/fixtures/sample-manifest.json`. This is iteration 1. The task specifies POST /api/bookmarks returns 201. However, you discover during implementation that the Drizzle ORM returns snake_case field names (folder_id instead of folderId). Implement the task, noting any drift accurately.",
+      "expected_output": "The executor should complete the task but report structural drift — the assumption A01 specifies camelCase 'folderId' but the ORM returns 'folder_id'. The completion record should accurately describe this as structural drift with the broken assumption identified.",
+      "files": [],
+      "expectations": [
+        "The completion record has matched_plan set to false",
+        "The drift_type is 'structural' (not 'local' — the API response shape is an external surface other tasks depend on)",
+        "The broken_assumptions array references assumption A01 by id",
+        "The broken_assumptions entry describes the reality (snake_case field names from Drizzle ORM)",
+        "The executor does NOT stop or fail because of the drift — it completes the task and records the deviation"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "You are the Task Executor. Read the agent prompt at `.planning/agents/task-executor.md`. Your task file content is in `.planning/evals/fixtures/sample-task.json`. This is iteration 2. Resumption context: iteration 1 was attempted. Test files exist at src/__tests__/bookmarks.test.ts and are correctly written. Tests are currently failing because the implementation was not completed — only the API route exists, the React components were not created. Pick up where the previous iteration left off.",
+      "expected_output": "The executor should NOT rewrite existing test files. It should check what's on disk, determine implementation is incomplete, and continue from where iteration 1 stopped.",
+      "files": [],
+      "expectations": [
+        "The executor does NOT rewrite test files that already exist",
+        "The executor checks what files are already on disk before writing anything",
+        "The executor continues implementation from where it left off — creating the missing React components",
+        "If all tests pass after implementation, the executor emits COMPLETE (not INCOMPLETE)"
+      ]
+    }
+  ]
+}

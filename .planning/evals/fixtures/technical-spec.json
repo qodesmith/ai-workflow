@@ -1,0 +1,47 @@
+{
+  "decisions": [
+    {
+      "area": "data model: bookmarks",
+      "decision": "Bookmarks table: id (UUID PK), user_id (FK to users), url (text, unique per user via composite unique constraint on user_id + url), title (text), folder_id (nullable FK to folders), created_at (timestamp default now). Folders table: id (UUID PK), user_id (FK to users), name (text), created_at (timestamp default now). Null folder_id means top-level.",
+      "rationale": "Normalized schema keeps bookmarks and folders separate. Per-user URL uniqueness enforced at the database level prevents duplicates without application-level race conditions. Nullable folder_id avoids a special 'root' folder row.",
+      "alternatives_considered": [
+        "JSON column for folders: rejected because SC-05 requires moving bookmarks between folders, which means updating folder membership frequently — a relational FK is simpler and faster than JSON manipulation.",
+        "Tags instead of folders: rejected because the engineer specified a folder model with hierarchical containment."
+      ],
+      "affected_scenarios": ["SC-01", "SC-02", "SC-03", "SC-05"]
+    },
+    {
+      "area": "frontend state: React Query",
+      "decision": "Use React Query (TanStack Query) for all server state. Bookmark list query key: ['bookmarks', { q: searchTerm }]. Mutations for create, delete, and move invalidate the bookmark list query. Delete uses optimistic update — remove from cache immediately, rollback on error. Search debounced at 300ms using useDeferredValue or a custom debounce hook.",
+      "rationale": "React Query eliminates manual loading/error state management and provides built-in cache invalidation. Optimistic delete gives instant UI feedback for SC-03. Debounced search satisfies SC-04's 'results update as the user types' without hammering the API.",
+      "alternatives_considered": [
+        "Zustand or Redux for client state: rejected because the engineer specified server-as-source-of-truth with React Query cache — adding a client store would duplicate state.",
+        "SWR instead of React Query: rejected because React Query has better mutation/invalidation APIs needed for the optimistic delete pattern."
+      ],
+      "affected_scenarios": ["SC-01", "SC-02", "SC-03", "SC-04", "SC-05"]
+    },
+    {
+      "area": "API: bookmark endpoints",
+      "decision": "REST endpoints: POST /api/bookmarks (body: { url, title, folderId? }) returns 201 + bookmark object or 409 if duplicate. DELETE /api/bookmarks/:id returns 204. GET /api/bookmarks?q=term returns array of bookmarks filtered by title (case-insensitive ILIKE), or all bookmarks if q is absent. PATCH /api/bookmarks/:id (body: { folderId }) returns 200 + updated bookmark. All endpoints require authenticated session.",
+      "rationale": "Standard REST verbs. 409 for duplicate gives the frontend a clear signal to show the error toast in SC-02. ILIKE handles case-insensitive search at the database level for SC-04. Single GET endpoint for both list and search simplifies the React Query setup.",
+      "alternatives_considered": [
+        "GraphQL: rejected — overkill for 4 endpoints with simple query patterns.",
+        "Separate /api/bookmarks and /api/bookmarks/search endpoints: rejected — the only difference is the presence of a query parameter, which REST handles naturally."
+      ],
+      "affected_scenarios": ["SC-01", "SC-02", "SC-03", "SC-04", "SC-05"]
+    },
+    {
+      "area": "UI: toast notifications",
+      "decision": "Use react-hot-toast for success and error toasts. Success toasts auto-dismiss after 3 seconds. Error toasts persist until dismissed. Toast text matches the exact strings specified in the behavioral scenarios.",
+      "rationale": "react-hot-toast is lightweight, has no dependencies, and supports the two behaviors needed: auto-dismiss for success (SC-01) and persistent for errors (SC-02). Using exact scenario text ensures tests can assert on toast content.",
+      "alternatives_considered": [
+        "Custom toast component: rejected — no reason to build what a well-maintained library already provides.",
+        "Sonner: viable alternative but react-hot-toast is smaller and sufficient for this use case."
+      ],
+      "affected_scenarios": ["SC-01", "SC-02"]
+    }
+  ],
+  "open_risks": [
+    "Optimistic delete rollback UX: if the DELETE request fails after the bookmark is visually removed, React Query will restore it. The user may find this confusing. Current decision is to show an error toast on rollback — but the behavioral spec doesn't cover this edge case."
+  ]
+}

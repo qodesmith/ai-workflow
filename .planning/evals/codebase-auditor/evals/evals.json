@@ -1,0 +1,49 @@
+{
+  "skill_name": "codebase-auditor-eval",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You are the Codebase Auditor. Read the agent prompt at `.planning/agents/codebase-auditor.md`, then read `.planning/behavioral-spec.json` and `.planning/technical-vision.md`. Audit the codebase and produce all 8 output files in `.planning/codebase/`. This is a Next.js app with Drizzle ORM, NextAuth, and PostgreSQL.",
+      "expected_output": "Seven markdown audit documents (STACK.md, INTEGRATIONS.md, ARCHITECTURE.md, STRUCTURE.md, CONVENTIONS.md, TESTING.md, CONCERNS.md) plus index.json, all in .planning/codebase/. Documents should be prescriptive, include file paths, and flag tensions between the codebase and both the behavioral spec and technical vision.",
+      "files": [],
+      "expectations": [
+        "All 8 files are created in .planning/codebase/ (7 .md files + index.json)",
+        "STACK.md references the actual languages, frameworks, and dependencies found in the codebase",
+        "ARCHITECTURE.md contains a 'Spec Tensions' section",
+        "ARCHITECTURE.md contains a 'Technical Vision Tensions' section",
+        "CONCERNS.md contains a 'Spec Conflicts' section",
+        "CONCERNS.md contains a 'Technical Vision Conflicts' section",
+        "Every document includes an 'Audited against' annotation referencing scenario IDs",
+        "Documents include actual file paths in backticks, not generic references like 'the user service'",
+        "index.json contains a documents array with all 7 document entries",
+        "No environment variable values are included — only variable names"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "You are the Codebase Auditor. Read the agent prompt at `.planning/agents/codebase-auditor.md`, then read `.planning/behavioral-spec.json`. There is no technical vision file. Audit the codebase and produce all 8 output files in `.planning/codebase/`.",
+      "expected_output": "Same 8 files, but without Technical Vision sections (since no technical vision exists). The audit uses only the behavioral spec as its lens.",
+      "files": [],
+      "expectations": [
+        "All 8 files are created in .planning/codebase/",
+        "ARCHITECTURE.md contains a 'Spec Tensions' section",
+        "ARCHITECTURE.md does NOT contain a 'Technical Vision Tensions' section (or the section is explicitly omitted per the template instructions)",
+        "CONCERNS.md does NOT contain a 'Technical Vision Conflicts' section (or the section is explicitly omitted)",
+        "Documents are still prescriptive — directives, not observations",
+        "Documents include code examples from the actual codebase, not hypothetical snippets"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "You are the Codebase Auditor. Read the agent prompt at `.planning/agents/codebase-auditor.md`, then read `.planning/behavioral-spec.json` and `.planning/technical-vision.md`. The technical vision specifies React Query for state management. Audit the codebase to determine whether React Query is already present and how it's used. Produce all 8 output files in `.planning/codebase/`.",
+      "expected_output": "The audit should investigate React Query specifically because the technical vision mentions it. STACK.md should note whether React Query / TanStack Query is in the dependencies. If it's present, CONVENTIONS.md or ARCHITECTURE.md should describe existing usage patterns. If it's absent, this should be surfaced as a finding.",
+      "files": [],
+      "expectations": [
+        "STACK.md mentions React Query / TanStack Query — either present in dependencies or noted as absent",
+        "If React Query is present, at least one document describes existing usage patterns with file paths",
+        "If React Query is absent, this is noted as relevant to the Technical Vision intent",
+        "The audit digs deeper into React Query patterns specifically because the technical vision calls for it — not just a surface-level dependency check"
+      ]
+    }
+  ]
+}

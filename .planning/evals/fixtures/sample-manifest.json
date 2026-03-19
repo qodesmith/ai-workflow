@@ -1,0 +1,47 @@
+{
+  "tasks": [
+    {
+      "id": "T01",
+      "file": ".planning/tasks/T01.json",
+      "title": "Add bookmark creation endpoint and UI",
+      "depends_on": [],
+      "status": "complete",
+      "completion": {
+        "summary": "Implemented POST /api/bookmarks endpoint with duplicate detection and BookmarkForm + BookmarkList React components. Used react-hot-toast for notifications.",
+        "matched_plan": false,
+        "drift_type": "structural",
+        "broken_assumptions": [
+          {
+            "assumption_id": "A01",
+            "assumption": "POST /api/bookmarks returns 201 with the created bookmark object including id, url, title, folderId, and createdAt fields",
+            "reality": "POST /api/bookmarks returns 201 with the created bookmark object but the field is named 'folder_id' (snake_case) not 'folderId' (camelCase) because the ORM returns database column names directly"
+          }
+        ],
+        "notes": "The ORM (Drizzle) returns snake_case column names by default. The response includes folder_id instead of folderId. Downstream tasks that parse the API response need to use snake_case field names."
+      },
+      "loop_verified": true
+    },
+    {
+      "id": "T02",
+      "file": ".planning/tasks/T02.json",
+      "title": "Add bookmark deletion with optimistic update",
+      "depends_on": ["T01"],
+      "status": "pending"
+    },
+    {
+      "id": "T03",
+      "file": ".planning/tasks/T03.json",
+      "title": "Add bookmark search with debounced filtering",
+      "depends_on": ["T01"],
+      "status": "pending"
+    },
+    {
+      "id": "T04",
+      "file": ".planning/tasks/T04.json",
+      "title": "Add folder organization for bookmarks",
+      "depends_on": ["T01"],
+      "status": "pending"
+    }
+  ],
+  "drift_log": []
+}

@@ -1,0 +1,47 @@
+{
+  "skill_name": "task-generator-eval",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You are the Task Generator. Read the agent prompt at `.planning/agents/task-generator.md`. Then read `.planning/behavioral-spec.json` and `.planning/technical-spec.json`. There is no codebase audit (this is a new project). Generate all task files and the manifest.",
+      "expected_output": "A manifest.json and individual task JSON files in .planning/tasks/. Tasks should cover all 5 scenarios and all 4 technical decisions. Each task is a vertical slice with scenarios, decisions, files, and assumptions.",
+      "files": [],
+      "expectations": [
+        "manifest.json is created at .planning/tasks/manifest.json",
+        "At least one task file is created per scenario group in .planning/tasks/",
+        "Every scenario ID (SC-01 through SC-05) appears in at least one task's scenarios array",
+        "Every decision area from the technical spec appears in at least one task's decisions array",
+        "No task's files array contains test files — test_files is always empty at generation time",
+        "The dependency graph is acyclic — no circular depends_on references",
+        "Every task has a short imperative title, not 'Task 1' or similar generic names",
+        "Tasks that are referenced in other tasks' depends_on have a non-empty assumptions array",
+        "Every scenario's Then clause is concrete enough to be translated into a failing test",
+        "No task references another task by ID in its files, scenarios, decisions, or notes"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "You are the Task Generator. Read the agent prompt at `.planning/agents/task-generator.md`. Then read `.planning/behavioral-spec.json`, `.planning/technical-spec.json`, and `.planning/technical-vision.md`. There is no codebase audit. Generate all task files and the manifest. Pay attention to the engineer's reasoning in the technical vision when writing task notes.",
+      "expected_output": "Same task structure as eval 1, but task notes should incorporate context from the technical vision where relevant — for instance, the debounce reasoning for search, or the optimistic update pattern for delete.",
+      "files": [],
+      "expectations": [
+        "All validation checks from eval 1 still pass (coverage, acyclicity, self-containment)",
+        "At least one task's notes field references context from the technical vision (e.g., debounce timing, optimistic update pattern, or React Query cache invalidation strategy)",
+        "The technical vision does NOT override the locked decisions in the technical spec — decisions arrays contain technical spec decisions only",
+        "Task files reference .planning/codebase/ documents in codebase_context only if a codebase audit exists (empty array for new projects)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "You are the Task Generator. Read the agent prompt at `.planning/agents/task-generator.md`. Then read `.planning/behavioral-spec.json` and `.planning/technical-spec.json`. Generate tasks. Specifically verify: are the tasks appropriately sized? No task should be too large (implementing the entire feature) or too small (only a migration with nothing verifiable).",
+      "expected_output": "Tasks are vertical slices — each touches multiple layers and delivers something independently verifiable. No single task implements all 5 scenarios. No task only creates a database table without corresponding API or UI code.",
+      "files": [],
+      "expectations": [
+        "No single task contains all 5 scenarios — work is split across multiple tasks",
+        "No task's files array has more than 10 entries",
+        "Every task's files array includes files across multiple layers (not just a single migration or a single component)",
+        "The generator's own validation checklist (13 checks) all pass — the confirmation output lists each check as passing"
+      ]
+    }
+  ]
+}

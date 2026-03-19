@@ -1,0 +1,50 @@
+{
+  "skill_name": "drift-response-eval",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You are the Drift Response agent. Read the agent prompt at `.planning/agents/drift-response.md`.\n\nThe task that just completed: T01\n\nCompleted task manifest entry (from `.planning/evals/fixtures/sample-manifest.json`, task T01 — it has structural drift with broken assumption A01: the API returns snake_case field names instead of camelCase).\n\nThe full manifest is at `.planning/evals/fixtures/sample-manifest.json`. Pending task files are at `.planning/tasks/`. Scan pending tasks T02, T03, T04 for references to the broken assumption (camelCase field names like 'folderId' in API responses). Update affected files and write the drift log entry.",
+      "expected_output": "The agent should scan all pending tasks, identify which ones reference the camelCase field names from the broken assumption, update those task files with minimum viable changes, append a drift_log entry, and emit <drift_resolved/>.",
+      "files": [],
+      "expectations": [
+        "The agent correctly classifies this as structural drift",
+        "The agent scans all pending task files (T02, T03, T04) for references to the broken assumption",
+        "Affected task files are updated with minimum viable changes — only fields referencing the old surface are changed",
+        "The agent does NOT modify scenarios or decisions in any task file",
+        "A drift_log entry is appended to the manifest with triggered_by: 'T01', drift_type: 'structural'",
+        "The drift_log entry has engineer_flagged: false (structural drift doesn't require engineer input)",
+        "The output ends with <drift_resolved/>"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "You are the Drift Response agent. Read the agent prompt at `.planning/agents/drift-response.md`.\n\nThe task that just completed: T01. Drift type: decision. The technical spec specified react-hot-toast for notifications, but the executor used Sonner instead because react-hot-toast had a compatibility issue with the Next.js version.\n\nCompleted task manifest entry:\n{\"id\":\"T01\",\"status\":\"complete\",\"completion\":{\"summary\":\"Used Sonner instead of react-hot-toast due to Next.js 15 incompatibility.\",\"matched_plan\":false,\"drift_type\":\"decision\",\"broken_assumptions\":[],\"notes\":\"react-hot-toast v2.4 throws a hydration error in Next.js 15 server components. Switched to Sonner which has first-class Next.js support.\"}}\n\nThe full manifest has pending tasks T02, T03, T04. Scan and handle.",
+      "expected_output": "Decision drift MUST halt for engineer input. The agent should update file-level references in affected tasks, write the drift log with engineer_flagged: true, and emit <engineer_required> — NOT <drift_resolved/>.",
+      "files": [],
+      "expectations": [
+        "The agent classifies this as decision drift",
+        "The agent does NOT emit <drift_resolved/> — decision drift always requires engineer input",
+        "The output contains <engineer_required>...</engineer_required> with a detailed explanation",
+        "The engineer_required text explains which decision was departed from (toast library choice)",
+        "The engineer_required text asks whether to update the Technical Spec or treat as a one-off",
+        "The drift_log entry has engineer_flagged: true",
+        "The agent does NOT resolve the decision itself — it flags and halts"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "You are the Drift Response agent. Read the agent prompt at `.planning/agents/drift-response.md`.\n\nThe task that just completed: T01. Drift type: additive. The executor created a shared utility function `src/lib/api-client.ts` that wraps fetch with authentication headers. This wasn't in the plan but pending tasks T02, T03, T04 all need authenticated API calls.\n\nCompleted task manifest entry:\n{\"id\":\"T01\",\"status\":\"complete\",\"completion\":{\"summary\":\"Created bookmark CRUD. Also created src/lib/api-client.ts — a shared fetch wrapper that attaches the session cookie to all API requests.\",\"matched_plan\":false,\"drift_type\":\"additive\",\"broken_assumptions\":[],\"notes\":\"Created api-client.ts because the authentication header logic was going to be duplicated in every component. Pending tasks that make API calls should import from src/lib/api-client.ts instead of using raw fetch.\"}}\n\nScan pending tasks and handle.",
+      "expected_output": "Additive drift — nothing is broken, but pending tasks should know about the new utility. The agent should update notes in affected tasks to reference the new api-client.ts, and emit <drift_resolved/>.",
+      "files": [],
+      "expectations": [
+        "The agent classifies this as additive drift",
+        "The agent identifies which pending tasks would benefit from knowing about the api-client.ts utility",
+        "Affected tasks have their notes field updated to describe the new utility and recommend using it",
+        "The agent may update files[].description if a task should use api-client.ts instead of raw fetch",
+        "The agent does NOT modify scenarios, decisions, id, title, type, or depends_on",
+        "The drift_log entry has engineer_flagged: false",
+        "The output ends with <drift_resolved/>"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "id": "T01",
+  "title": "Add bookmark creation endpoint and UI",
+  "type": "fullstack",
+  "depends_on": [],
+  "assumptions": [
+    {
+      "id": "A01",
+      "description": "POST /api/bookmarks returns 201 with the created bookmark object including id, url, title, folderId, and createdAt fields"
+    },
+    {
+      "id": "A02",
+      "description": "POST /api/bookmarks returns 409 with body { error: 'You already have this bookmark saved' } when the user already has a bookmark with the same URL"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "SC-01",
+      "actor": "User",
+      "title": "Save a new bookmark",
+      "background": ["The user is logged in"],
+      "given": ["The user is on the bookmarks page"],
+      "when": ["The user submits a URL 'https://example.com' with title 'Example Site'"],
+      "then": [
+        "A new bookmark is created with the URL 'https://example.com' and title 'Example Site'",
+        "The bookmark appears at the top of the user's bookmark list",
+        "A success toast displays 'Bookmark saved'"
+      ]
+    },
+    {
+      "id": "SC-02",
+      "actor": "User",
+      "title": "Reject duplicate bookmark URL",
+      "background": ["The user is logged in"],
+      "given": ["The user already has a bookmark with URL 'https://example.com'"],
+      "when": ["The user submits a new bookmark with URL 'https://example.com'"],
+      "then": [
+        "No new bookmark is created",
+        "An error toast displays 'You already have this bookmark saved'"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "area": "data model: bookmarks",
+      "decision": "Bookmarks table: id (UUID PK), user_id (FK to users), url (text, unique per user via composite unique constraint on user_id + url), title (text), folder_id (nullable FK to folders), created_at (timestamp default now).",
+      "rationale": "Per-user URL uniqueness enforced at the database level prevents duplicates without application-level race conditions."
+    },
+    {
+      "area": "API: bookmark endpoints",
+      "decision": "POST /api/bookmarks (body: { url, title, folderId? }) returns 201 + bookmark object or 409 if duplicate.",
+      "rationale": "409 for duplicate gives the frontend a clear signal to show the error toast in SC-02."
+    },
+    {
+      "area": "UI: toast notifications",
+      "decision": "Use react-hot-toast. Success toasts auto-dismiss after 3 seconds. Error toasts persist until dismissed.",
+      "rationale": "Lightweight, supports both auto-dismiss and persistent behaviors needed by SC-01 and SC-02."
+    }
+  ],
+  "files": [
+    {
+      "path": "src/app/api/bookmarks/route.ts",
+      "action": "create",
+      "description": "POST handler: validate session, check for duplicate URL (user_id + url unique constraint), insert bookmark, return 201 with bookmark object or 409 with error message."
+    },
+    {
+      "path": "src/components/BookmarkForm.tsx",
+      "action": "create",
+      "description": "Form component with URL and title inputs. On submit, calls POST /api/bookmarks via React Query mutation. Shows success toast on 201, error toast on 409."
+    },
+    {
+      "path": "src/components/BookmarkList.tsx",
+      "action": "create",
+      "description": "Renders the user's bookmarks from a React Query query. New bookmarks appear at the top (ordered by created_at DESC)."
+    },
+    {
+      "path": "src/lib/db/schema.ts",
+      "action": "modify",
+      "description": "Add bookmarks table and folders table definitions with the schema from the data model decision."
+    }
+  ],
+  "codebase_context": [
+    ".planning/codebase/CONVENTIONS.md",
+    ".planning/codebase/TESTING.md",
+    ".planning/codebase/ARCHITECTURE.md"
+  ],
+  "commit_type": "feat",
+  "test_files": [],
+  "notes": null
+}

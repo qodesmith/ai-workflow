@@ -1,0 +1,79 @@
+{
+  "initiative": "User Bookmark Manager",
+  "goal": "Allow authenticated users to save, organize, and search bookmarks.",
+  "actors": [
+    { "name": "User", "description": "An authenticated user of the application" }
+  ],
+  "scenarios": [
+    {
+      "id": "SC-01",
+      "title": "Save a new bookmark",
+      "actor": "User",
+      "background": ["The user is logged in"],
+      "given": ["The user is on the bookmarks page"],
+      "when": ["The user submits a URL 'https://example.com' with title 'Example Site'"],
+      "then": [
+        "A new bookmark is created with the URL 'https://example.com' and title 'Example Site'",
+        "The bookmark appears at the top of the user's bookmark list",
+        "A success toast displays 'Bookmark saved'"
+      ]
+    },
+    {
+      "id": "SC-02",
+      "title": "Reject duplicate bookmark URL",
+      "actor": "User",
+      "background": ["The user is logged in"],
+      "given": ["The user already has a bookmark with URL 'https://example.com'"],
+      "when": ["The user submits a new bookmark with URL 'https://example.com'"],
+      "then": [
+        "No new bookmark is created",
+        "An error toast displays 'You already have this bookmark saved'"
+      ]
+    },
+    {
+      "id": "SC-03",
+      "title": "Delete a bookmark",
+      "actor": "User",
+      "background": ["The user is logged in"],
+      "given": ["The user has a bookmark with title 'Example Site'"],
+      "when": ["The user clicks the delete button on the 'Example Site' bookmark"],
+      "then": [
+        "The bookmark is removed from the database",
+        "The bookmark disappears from the list without a full page reload"
+      ]
+    },
+    {
+      "id": "SC-04",
+      "title": "Search bookmarks by title",
+      "actor": "User",
+      "background": ["The user is logged in"],
+      "given": [
+        "The user has bookmarks titled 'Example Site', 'React Docs', and 'TypeScript Handbook'"
+      ],
+      "when": ["The user types 'react' in the search field"],
+      "then": [
+        "Only 'React Docs' appears in the filtered list",
+        "The search is case-insensitive",
+        "Results update as the user types without requiring a submit action"
+      ]
+    },
+    {
+      "id": "SC-05",
+      "title": "Organize bookmarks into folders",
+      "actor": "User",
+      "background": ["The user is logged in"],
+      "given": ["The user has a bookmark titled 'React Docs' and a folder titled 'Dev Resources'"],
+      "when": ["The user moves 'React Docs' into the 'Dev Resources' folder"],
+      "then": [
+        "'React Docs' appears inside the 'Dev Resources' folder",
+        "'React Docs' no longer appears in the top-level bookmark list",
+        "The folder's bookmark count updates to reflect the addition"
+      ]
+    }
+  ],
+  "out_of_scope": [
+    "Bookmark sharing between users",
+    "Browser extension integration",
+    "Automatic metadata fetching from URLs"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "skill_name": "system-prompt-eval",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "You are the planning agent. Read and follow the system prompt at `.planning/agents/system-prompt.md`.\n\nThe engineer says:\n\"I want to build a bookmark manager. Users can save URLs with a title, and they show up in a list. If they try to save the same URL twice it should tell them it's already saved. They can delete bookmarks and the list updates without reloading the page. I also want search — they type in the search box and results filter in real time as they type. Bookmarks should be organizable into folders.\"\n\nProcess this as a Phase 1 Brain Dump. Organize it into `.planning/initial-thoughts.md` with all five sections. This brain dump contains ONLY behavioral content — no technical ideas were mentioned.",
+      "expected_output": "A well-organized initial-thoughts.md with Capability Clusters, Behavioral Seeds (tagged by completeness), an EMPTY Technical Seeds section (the engineer gave no technical opinions), Gaps/Contradictions/Assumptions, and a Parking Lot. The AI should NOT invent technical seeds that weren't stated.",
+      "files": [],
+      "expectations": [
+        "The file .planning/initial-thoughts.md is created",
+        "The document has exactly 5 sections: Capability Clusters, Behavioral Seeds, Technical Seeds, Gaps/Contradictions/Assumptions, Parking Lot",
+        "The Technical Seeds section is empty or explicitly states no technical ideas were provided",
+        "Behavioral Seeds are tagged by completeness (near-complete, partial, or implied)",
+        "The AI does NOT invent technical seeds — no database schemas, no framework choices, no architecture decisions that the engineer didn't mention",
+        "Gaps and Assumptions are derived only from the engineer's own statements, not from what the AI thinks a complete system needs"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "You are the planning agent. Read and follow the system prompt at `.planning/agents/system-prompt.md`.\n\nThe engineer says:\n\"I want to build a bookmark manager. Users save URLs with titles, delete them, search them, organize into folders. For the technical side — I want a normalized database schema, separate tables for bookmarks and folders. React Query for state management, REST API, react-hot-toast for notifications. The search should be debounced.\"\n\nProcess this as a Phase 1 Brain Dump. This brain dump contains BOTH behavioral and technical content.",
+      "expected_output": "initial-thoughts.md with both Behavioral Seeds AND Technical Seeds populated. The statement 'normalized database schema, separate tables' is technical. 'Users save URLs with titles' is behavioral. Statements that contain both should be split into separate seeds in their respective sections.",
+      "files": [],
+      "expectations": [
+        "The file .planning/initial-thoughts.md is created with all 5 sections",
+        "The Technical Seeds section is NOT empty — it contains seeds for database schema, React Query, REST API, react-hot-toast, and debounced search",
+        "Technical seeds are tagged by completeness (near-complete, partial, or implied)",
+        "Each technical seed is cross-referenced to the capability cluster it relates to",
+        "Behavioral content is separated from technical content — 'save URLs with titles' is a behavioral seed, 'normalized database schema' is a technical seed",
+        "The AI does NOT add substance — it organizes what was said without inventing features or resolving ambiguities"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "You are the planning agent. Read and follow the system prompt at `.planning/agents/system-prompt.md`.\n\nPhase 1 is complete (initial-thoughts.md exists). Phase 2 Mode 1 is complete (single initiative, confirmed). Phase 2 Mode 2 is complete — the behavioral spec has been written to `.planning/behavioral-spec.json`.\n\nThe initial-thoughts.md has an EMPTY Technical Seeds section. The engineer had no technical opinions.\n\nYou are now at the transition point between Mode 2 and the rest of Phase 2. What should happen next? Describe what you would do and why.",
+      "expected_output": "The AI should skip Mode 3 (no technical seeds) and note the skip explicitly. It should transition to Phase 3 (Reference Gathering) with the skip message specified in the system prompt.",
+      "files": [],
+      "expectations": [
+        "The AI recognizes that Mode 3 should be skipped because there are no technical seeds",
+        "The AI notes the skip explicitly — something like 'No technical seeds in the brain dump — skipping technical grilling'",
+        "The AI mentions that Phase 5 will propose all technical decisions from scratch",
+        "The AI transitions to Phase 3 (Reference Gathering), not to Mode 3",
+        "The AI does NOT attempt to invent technical topics to grill the engineer on"
+      ]
+    }
+  ]
+}
