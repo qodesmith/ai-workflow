@@ -161,7 +161,7 @@ This continues until all decisions are explicitly approved.
 
 ## Phase 6: Final Review
 
-_This is a conversational phase — it is handled by the system prompt agent (`system-prompt.md`), not a dedicated agent file._
+_This is a conversational phase — it is handled by the system prompt agent (`.planning/system-prompt.md`), not a dedicated agent file._
 
 The engineer reviews `.planning/behavioral-spec.json` and `.planning/technical-spec.json` side by side and confirms both accurately reflect their intent. This is the last checkpoint before tasks are generated. Changes here cascade forward — a behavioral change requires a consistency check on `.planning/technical-spec.json` and task regeneration; a technical change requires task regeneration.
 

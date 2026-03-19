@@ -8,7 +8,7 @@
 // A task takes as many iterations as it needs.
 // Each iteration resumes where the last left off.
 //
-// Run: bun ralph.ts
+// Run: bun .planning/ralph.ts
 // ─────────────────────────────────────────────
 
 import { $ } from "bun";
@@ -473,7 +473,7 @@ while (true) {
     }
   }
 
-  const taskAttemptCountCount = (task.progress?.length ?? 0) + 1;
+  const taskAttemptCount = (task.progress?.length ?? 0) + 1;
   const taskFile = join(PROJECT_ROOT, task.file);
 
   if (!(await Bun.file(taskFile).exists())) {
