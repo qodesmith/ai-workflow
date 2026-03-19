@@ -1,0 +1,13 @@
+{
+  "git.scanRepositories": ["."],
+  "git.autoRepositoryDetection": "openEditors",
+  "files.exclude": {
+    ".claude/worktrees": true
+  },
+  "search.exclude": {
+    ".claude/worktrees": true
+  },
+  "files.watcherExclude": {
+    ".claude/worktrees/**": true
+  }
+}

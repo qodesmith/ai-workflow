@@ -170,20 +170,24 @@ Put results in `<skill-name>-workspace/` as a sibling to the skill directory. Wi
 
 For each test case, spawn two subagents in the same turn — one with the skill, one without. This is important: don't spawn the with-skill runs first and then come back for baselines later. Launch everything at once so it all finishes around the same time.
 
+**IMPORTANT: Use worktree isolation for all eval runs.** Spawn each subagent with `isolation: "worktree"` so it gets its own copy of the repo. This prevents eval runs from polluting the main project directory with artifacts like `node_modules/`, `src/`, `package.json`, build outputs, etc. The worktree is automatically cleaned up if the agent makes no file changes. After a worktree agent completes, copy only the desired output files (from the worktree path returned in the result) into the workspace output directory.
+
 **With-skill run:**
 
 ```
-Execute this task:
+Execute this task (use isolation: "worktree"):
 - Skill path: <path-to-skill>
 - Task: <eval prompt>
 - Input files: <eval files if any, or "none">
 - Save outputs to: <workspace>/iteration-<N>/eval-<ID>/with_skill/outputs/
 - Outputs to save: <what the user cares about — e.g., "the .docx file", "the final CSV">
+- IMPORTANT: After the agent completes, copy the relevant output files from the worktree into the workspace outputs directory, then the worktree will be cleaned up automatically.
 ```
 
 **Baseline run** (same prompt, but the baseline depends on context):
 - **Creating a new skill**: no skill at all. Same prompt, no skill path, save to `without_skill/outputs/`.
 - **Improving an existing skill**: the old version. Before editing, snapshot the skill (`cp -r <skill-path> <workspace>/skill-snapshot/`), then point the baseline subagent at the snapshot. Save to `old_skill/outputs/`.
+- **Always use `isolation: "worktree"` for baseline runs too.**
 
 Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing — not just "eval-0". Use this name for the directory too. If this iteration uses new or modified eval prompts, create these files for each new eval directory — don't assume they carry over from previous iterations.
 
@@ -446,7 +450,7 @@ In Claude.ai, the core workflow is the same (draft → test → review → impro
 
 If you're in Cowork, the main things to know are:
 
-- You have subagents, so the main workflow (spawn test cases in parallel, run baselines, grade, etc.) all works. (However, if you run into severe problems with timeouts, it's OK to run the test prompts in series rather than parallel.)
+- You have subagents, so the main workflow (spawn test cases in parallel, run baselines, grade, etc.) all works. (However, if you run into severe problems with timeouts, it's OK to run the test prompts in series rather than parallel.) Always use `isolation: "worktree"` when spawning eval subagents to prevent artifacts from polluting the main project directory.
 - You don't have a browser or display, so when generating the eval viewer, use `--static <output_path>` to write a standalone HTML file instead of starting a server. Then proffer a link that the user can click to open the HTML in their browser.
 - For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after running tests, you should always generate the eval viewer for the human to look at examples before revising the skill yourself and trying to make corrections, using `generate_review.py` (not writing your own boutique html code). Sorry in advance but I'm gonna go all caps here: GENERATE THE EVAL VIEWER *BEFORE* evaluating inputs yourself. You want to get them in front of the human ASAP!
 - Feedback works differently: since there's no running server, the viewer's "Submit All Reviews" button will download `feedback.json` as a file. You can then read it from there (you may have to request access first).
