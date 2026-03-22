@@ -22,3 +22,6 @@ vitest.config.ts
 
 # Worktree copies used by eval agents
 .claude/worktrees/
+
+# Python bytecode cache
+__pycache__/
