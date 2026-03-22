@@ -1,3 +1,6 @@
+# Basic ignores
+node_modules/
+
 # Eval run artifacts (workspaces, grading, benchmarks, viewer HTML)
 .planning/evals/*-workspace/
 .planning/evals/workspace
@@ -10,15 +13,6 @@
 .planning/behavioral-spec.json
 .planning/technical-spec.json
 .planning/technical-vision.md
-
-# Eval agent side effects (source code, tests, configs)
-src/
-__tests__/
-node_modules/
-package.json
-package-lock.json
-tsconfig.json
-vitest.config.ts
 
 # Worktree copies used by eval agents
 .claude/worktrees/
