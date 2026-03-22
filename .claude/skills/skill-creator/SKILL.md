@@ -217,19 +217,22 @@ Good assertions are objectively verifiable and have descriptive names — they s
 
 Update the `eval_metadata.json` files and `evals/evals.json` with the assertions once drafted. Also explain to the user what they'll see in the viewer — both the qualitative outputs and the quantitative benchmark.
 
-### Step 3: As runs complete, capture timing data
+### Step 3: As runs complete, capture timing data and clean up worktrees
 
-When each subagent task completes, you receive a notification containing `total_tokens` and `duration_ms`. Save this data immediately to `timing.json` in the run directory:
+When each subagent task completes, you receive a notification containing `total_tokens` and `duration_ms`. **Process each notification immediately** — do all three of these steps before moving on:
 
-```json
-{
-  "total_tokens": 84852,
-  "duration_ms": 23332,
-  "total_duration_seconds": 23.3
-}
-```
+1. **Save timing data** to `timing.json` in the run directory:
+   ```json
+   {
+     "total_tokens": 84852,
+     "duration_ms": 23332,
+     "total_duration_seconds": 23.3
+   }
+   ```
+2. **Copy output files** from the subagent's worktree into the eval worktree's workspace outputs directory.
+3. **Remove the subagent's worktree** immediately: `git worktree remove <path> --force`. Do not defer this — if you wait until all agents are done, you end up with dozens of orphaned worktrees cluttering the repo.
 
-This is the only opportunity to capture this data — it comes through the task notification and isn't persisted elsewhere. Process each notification as it arrives rather than trying to batch them.
+The timing data comes through the task notification and isn't persisted elsewhere, so this is the only opportunity to capture it.
 
 ### Step 4: Grade, aggregate, and launch the viewer
 
