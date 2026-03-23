@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/noConsole: logging is expected */
+
 import {$} from 'bun'
 import path from 'node:path'
 
@@ -21,5 +23,11 @@ const worktreePathData = worktreeRawData.reduce<
 }, [])
 
 for (const {worktreeName, worktreePath: _} of worktreePathData) {
-  await $`git worktree remove ${worktreeName} --force`
+  await $`git worktree remove ${worktreeName} --force`.catch(() => {
+    console.error(`Unable to remove worktree - ${worktreeName}`)
+  })
+
+  await $`git branch -D ${worktreeName}`.catch(() => {
+    console.error(`Unable to remove branch - ${worktreeName}`)
+  })
 }
