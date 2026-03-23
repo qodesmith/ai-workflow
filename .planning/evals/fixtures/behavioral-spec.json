@@ -2,7 +2,10 @@
   "initiative": "User Bookmark Manager",
   "goal": "Allow authenticated users to save, organize, and search bookmarks.",
   "actors": [
-    { "name": "User", "description": "An authenticated user of the application" }
+    {
+      "name": "User",
+      "description": "An authenticated user of the application"
+    }
   ],
   "scenarios": [
     {
@@ -11,7 +14,9 @@
       "actor": "User",
       "background": ["The user is logged in"],
       "given": ["The user is on the bookmarks page"],
-      "when": ["The user submits a URL 'https://example.com' with title 'Example Site'"],
+      "when": [
+        "The user submits a URL 'https://example.com' with title 'Example Site'"
+      ],
       "then": [
         "A new bookmark is created with the URL 'https://example.com' and title 'Example Site'",
         "The bookmark appears at the top of the user's bookmark list",
@@ -23,8 +28,12 @@
       "title": "Reject duplicate bookmark URL",
       "actor": "User",
       "background": ["The user is logged in"],
-      "given": ["The user already has a bookmark with URL 'https://example.com'"],
-      "when": ["The user submits a new bookmark with URL 'https://example.com'"],
+      "given": [
+        "The user already has a bookmark with URL 'https://example.com'"
+      ],
+      "when": [
+        "The user submits a new bookmark with URL 'https://example.com'"
+      ],
       "then": [
         "No new bookmark is created",
         "An error toast displays 'You already have this bookmark saved'"
@@ -36,7 +45,9 @@
       "actor": "User",
       "background": ["The user is logged in"],
       "given": ["The user has a bookmark with title 'Example Site'"],
-      "when": ["The user clicks the delete button on the 'Example Site' bookmark"],
+      "when": [
+        "The user clicks the delete button on the 'Example Site' bookmark"
+      ],
       "then": [
         "The bookmark is removed from the database",
         "The bookmark disappears from the list without a full page reload"
@@ -62,7 +73,9 @@
       "title": "Organize bookmarks into folders",
       "actor": "User",
       "background": ["The user is logged in"],
-      "given": ["The user has a bookmark titled 'React Docs' and a folder titled 'Dev Resources'"],
+      "given": [
+        "The user has a bookmark titled 'React Docs' and a folder titled 'Dev Resources'"
+      ],
       "when": ["The user moves 'React Docs' into the 'Dev Resources' folder"],
       "then": [
         "'React Docs' appears inside the 'Dev Resources' folder",

@@ -20,7 +20,9 @@
       "title": "Save a new bookmark",
       "background": ["The user is logged in"],
       "given": ["The user is on the bookmarks page"],
-      "when": ["The user submits a URL 'https://example.com' with title 'Example Site'"],
+      "when": [
+        "The user submits a URL 'https://example.com' with title 'Example Site'"
+      ],
       "then": [
         "A new bookmark is created with the URL 'https://example.com' and title 'Example Site'",
         "The bookmark appears at the top of the user's bookmark list",
@@ -32,8 +34,12 @@
       "actor": "User",
       "title": "Reject duplicate bookmark URL",
       "background": ["The user is logged in"],
-      "given": ["The user already has a bookmark with URL 'https://example.com'"],
-      "when": ["The user submits a new bookmark with URL 'https://example.com'"],
+      "given": [
+        "The user already has a bookmark with URL 'https://example.com'"
+      ],
+      "when": [
+        "The user submits a new bookmark with URL 'https://example.com'"
+      ],
       "then": [
         "No new bookmark is created",
         "An error toast displays 'You already have this bookmark saved'"

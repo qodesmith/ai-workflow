@@ -1,25 +1,25 @@
-import { $ } from "bun";
-import path from "node:path";
+import {$} from 'bun'
+import path from 'node:path'
 
-const currentBranch = (await $`git branch --show-current`.text()).trim();
-const rawWorktreeListOutput = await $`git worktree list --no-porcelain`.text();
-const worktreeRawData = rawWorktreeListOutput.split("\n").filter((line) => {
-  return line && !line.includes(`[${currentBranch}]`);
-});
+const currentBranch = (await $`git branch --show-current`.text()).trim()
+const rawWorktreeListOutput = await $`git worktree list --no-porcelain`.text()
+const worktreeRawData = rawWorktreeListOutput.split('\n').filter(line => {
+  return line && !line.includes(`[${currentBranch}]`)
+})
 const worktreePathData = worktreeRawData.reduce<
-  { worktreeName: string; worktreePath: string }[]
+  {worktreeName: string; worktreePath: string}[]
 >((acc, data) => {
-  const [worktreePath] = data.split(" ");
+  const [worktreePath] = data.split(' ')
 
   if (worktreePath) {
     // https://nodejs.org/docs/latest/api/path.html#pathparsepath
-    const worktreeName = path.parse(worktreePath).base;
-    acc.push({ worktreeName, worktreePath });
+    const worktreeName = path.parse(worktreePath).base
+    acc.push({worktreeName, worktreePath})
   }
 
-  return acc;
-}, []);
+  return acc
+}, [])
 
-for (const { worktreeName, worktreePath } of worktreePathData) {
-  await $`git worktree remove ${worktreeName} --force`;
+for (const {worktreeName, worktreePath: _} of worktreePathData) {
+  await $`git worktree remove ${worktreeName} --force`
 }

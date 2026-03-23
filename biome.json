@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["@qodestack/biome-config"],
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!dist",
+      "!*.lock",
+      "!.claude/skills/skill-creator/**/*.html"
+    ]
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "bracketSpacing": true,
+      "expand": "auto"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/ralph.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConsistentTypeDefinitions": {
+              "level": "warn",
+              "options": {
+                "style": "interface"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
