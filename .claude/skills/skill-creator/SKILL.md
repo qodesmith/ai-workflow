@@ -190,13 +190,13 @@ Execute this task (use isolation: "worktree"):
 - Input files: <eval files if any, or "none">
 - Save outputs to: <eval-worktree>/<workspace>/iteration-<N>/eval-<ID>/with_skill/outputs/
 - Outputs to save: <what the user cares about — e.g., "the .docx file", "the final CSV">
-- IMPORTANT: After the agent completes, copy the relevant output files from the subagent's worktree into the eval worktree's workspace outputs directory, then remove the subagent's worktree (`git worktree remove <path> --force`) so it doesn't linger.
+- IMPORTANT: After the agent completes, copy the relevant output files from the subagent's worktree into the eval worktree's workspace outputs directory.
 ```
 
 **Baseline run** (same prompt, but the baseline depends on context):
 - **Creating a new skill**: no skill at all. Same prompt, no skill path, save to `without_skill/outputs/`.
 - **Improving an existing skill**: the old version. Before editing, snapshot the skill (`cp -r <skill-path> <workspace>/skill-snapshot/`), then point the baseline subagent at the snapshot. Save to `old_skill/outputs/`.
-- **Always use `isolation: "worktree"` for baseline runs too.** After copying outputs, remove the subagent's worktree just like the with-skill runs.
+- **Always use `isolation: "worktree"` for baseline runs too.**
 
 Write an `eval_metadata.json` for each test case (assertions can be empty for now). Give each eval a descriptive name based on what it's testing — not just "eval-0". Use this name for the directory too. If this iteration uses new or modified eval prompts, create these files for each new eval directory — don't assume they carry over from previous iterations.
 
@@ -217,9 +217,9 @@ Good assertions are objectively verifiable and have descriptive names — they s
 
 Update the `eval_metadata.json` files and `evals/evals.json` with the assertions once drafted. Also explain to the user what they'll see in the viewer — both the qualitative outputs and the quantitative benchmark.
 
-### Step 3: As runs complete, capture timing data and clean up worktrees
+### Step 3: As runs complete, capture timing data
 
-When each subagent task completes, you receive a notification containing `total_tokens` and `duration_ms`. **Process each notification immediately** — do all three of these steps before moving on:
+When each subagent task completes, you receive a notification containing `total_tokens` and `duration_ms`. **Process each notification immediately** — do both of these steps before moving on:
 
 1. **Save timing data** to `timing.json` in the run directory:
    ```json
@@ -230,7 +230,6 @@ When each subagent task completes, you receive a notification containing `total_
    }
    ```
 2. **Copy output files** from the subagent's worktree into the eval worktree's workspace outputs directory.
-3. **Remove the subagent's worktree** immediately: `git worktree remove <path> --force`. Do not defer this — if you wait until all agents are done, you end up with dozens of orphaned worktrees cluttering the repo.
 
 The timing data comes through the task notification and isn't persisted elsewhere, so this is the only opportunity to capture it.
 
@@ -305,20 +304,15 @@ kill $VIEWER_PID 2>/dev/null
 
 ### Eval worktree cleanup
 
-When the user is done reviewing results and you no longer need the eval worktree, clean it up:
+When the user is done reviewing results and you no longer need the eval worktree, clean up all worktrees (both subagent and eval) by running the cleanup script from the project root:
 
 ```bash
-# First, remove any leftover subagent worktrees (isolation: "worktree" creates these
-# under .claude/worktrees/agent-* and they persist if the agent made changes)
-git worktree list --porcelain | grep -oP '(?<=worktree ).*.claude/worktrees/agent-[^/]+' | while read wt; do
-  git worktree remove "$wt" --force 2>/dev/null
-done
-
-# Then remove the eval worktree itself
-git worktree remove "$EVAL_WORKTREE" --force
+bun evalCleanup.ts
 ```
 
-If the user wants to keep the results, tell them the worktree path and let them copy what they need before cleanup. For multi-iteration runs, keep the eval worktree alive across iterations — only clean up when the entire eval session is done.
+This script removes all worktrees except the one for the current branch, handling both leftover subagent worktrees and the eval worktree itself in one step.
+
+If the user wants to keep the results, tell them the worktree path and let them copy what they need before cleanup. For multi-iteration runs, keep the eval worktree alive across iterations — only run the cleanup script when the entire eval session is done.
 
 ---
 
