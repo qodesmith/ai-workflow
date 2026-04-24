@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "@qodestack/biome-config": "^2.4.12",
-    "@types/bun": "^1.3.12"
+    "@types/bun": "^1.3.13"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"
